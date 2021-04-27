@@ -31,16 +31,3 @@ This mod fixes the majority of issues with Subnautica in VR as shown here [https
 - Removed the automatic recentering of the VR position when cinematics/animations are skipped.
 - Made changes to the body positions to keep the the player's head matched to the body under all conditions.
 If I have the time I will be adding more improvements in later versions.
-
-
-
-## INSTALLATION:
-
-1. Download and install QMods. Set the correct location of your Subnautica installation in the QMods installer and when the installation is complete you should have a folder called QMods inside your Subnautica game folder.
-2. Extract the VREnhancements folder from this zip file into the QMods folder in your Subnautica installation folder. When done correctly you should have the files mod.json and VREnhancements.dll in a folder called VREnhancements inside the QMods folder. An example path would be "D:\Games\Subnautica\QMods\VREnhancements"
-3. Run the game in VR mode and check if the mod was successfully installed. The bottom of the General tab in options should now have an option to enable VR animations and a slider for adjusting the walk speed. These options only show up if the game is in VR mode.
-
-Note: You may need to reinstall QMods each time the game is updated to re-enable all installed mods.
-
-## REMOVAL:
-To remove only the VR Enhancements mod, delete the VR Enhancements folder from your QMods folder. To remove QMods just uninstall it from control panel.
