@@ -13,7 +13,7 @@ using RootMotion.FinalIK;
 namespace VREnhancements
 {
     [QModCore]
-    public class MainPatcher
+    public static class MainPatcher
     {
         [QModPatch]
         public static void Patch()
@@ -31,5 +31,5 @@ namespace VREnhancements
                 }
             }
         }
-    }//main patcher class
+    }
 }
