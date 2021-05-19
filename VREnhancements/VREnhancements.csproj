@@ -88,12 +88,17 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="3DAudioFix.cs" />
     <Compile Include="AdditionalVROptions.cs" />
+    <Compile Include="CameraFixes.cs" />
     <Compile Include="CinematicsAnimations.cs" />
+    <Compile Include="CursorFixes.cs" />
     <Compile Include="ImmersiveHUD.cs" />
+    <Compile Include="LoadingScreenFix.cs" />
     <Compile Include="MainPatcher.cs" />
+    <Compile Include="PDAFixes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SubtitlePosition.cs" />
+    <Compile Include="UIElementsFixes.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -41,6 +41,17 @@ namespace VREnhancements
                 return true;
             }
         }
-    }
 
+        [HarmonyPatch(typeof(uGUI_BuilderMenu), nameof(uGUI_BuilderMenu.Close))]
+        class BuilderMenu_Close_Patch
+        {
+            //VRViewModelAngle was being locked in the Open method but not reset in the close method
+            //This fixes the wrong orientation of the the player model during animations after using the builder tool.
+            static void Postfix()
+            {
+                MainCameraControl.main.ResetLockedVRViewModelAngle();
+            }
+
+        }
+    }
 }

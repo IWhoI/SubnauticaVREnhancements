@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace VREnhancements
 {
-    public static class ImmersiveHUD
+    class ImmersiveHUD
     {
         private static GameObject quickSlots;
         private static GameObject barsPanel;
@@ -14,6 +14,7 @@ namespace VREnhancements
                 //disable immersive hud by making the original hud always visible
                 quickSlots.transform.localScale = Vector3.one;
                 barsPanel.transform.localScale = Vector3.one;
+                AdditionalVROptions.immersiveHUD = false;
                 return true;
             }
             else

@@ -23,8 +23,8 @@ namespace VREnhancements
                 __instance.AddToggleOption(generalTabIndex, "Immersive HUD", immersiveHUD, delegate (bool v)
                 {
                     immersiveHUD = v;
-                    //immediately disable the immersive HUD if option toggled off
-                    if (!v)
+                    //immediately disable the immersive HUD if option toggled off while the hud was invisible
+                    if (!immersiveHUD)
                         ImmersiveHUD.Disable();
                 });
                 __instance.AddSliderOption(generalTabIndex, "Walk Speed(Default: 60%)", VROptions.groundMoveScale * 100, 50, 100, 60, delegate (float v)
