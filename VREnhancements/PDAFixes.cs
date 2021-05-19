@@ -16,8 +16,6 @@ namespace VREnhancements
         private static GameObject leftHandTarget;
         private static FullBodyBipedIK myIK;
 
-        //This doesn't seem right. Not sure if this is the best method to patch for this.
-        
         [HarmonyPatch(typeof(PDA), nameof(PDA.Open))]
         class PDA_Open_Patch
         {
