@@ -8,14 +8,17 @@ namespace VREnhancements
 {
     class UIElementsFixes
     {
-        private static Button recenterVRButton;
+        public static void SetSubtitleHeight(float percentage)
+        {
+            Subtitles.main.popup.oy = GraphicsUtil.GetScreenSize().y * percentage / 100;
+        }
 
         [HarmonyPatch(typeof(Subtitles), nameof(Subtitles.Start))]
         class SubtitlesPosition_Patch
         {//Bring up the subtitles into view while in VR
-            public static void Postfix(Subtitles __instance)
+            static void Postfix(Subtitles __instance)
             {
-                __instance.popup.oy = AdditionalVROptions.subtitleYPos;//higher values means higher on the screen. Fix to use screen height percentage instead of pixel value.
+                SetSubtitleHeight(AdditionalVROptions.subtitleYPos);
             }
         }
 
@@ -82,6 +85,7 @@ namespace VREnhancements
         [HarmonyPatch(typeof(IngameMenu), nameof(IngameMenu.Awake))]
         class IGM_Awake_Patch
         {
+            private static Button recenterVRButton;
             //code copied from the quit to desktop mod and modified
             static void Postfix(IngameMenu __instance)
             {

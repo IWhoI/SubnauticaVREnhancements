@@ -6,7 +6,8 @@ namespace VREnhancements
     {
         public static int generalTabIndex = 0;
         public static bool immersiveHUD = false;
-        public static float subtitleYPos = 800f;
+        public static float subtitleYPos = 40;
+        public static float PDA_Distance = 0.28f;
         [HarmonyPatch(typeof(uGUI_OptionsPanel), nameof(uGUI_OptionsPanel.AddGeneralTab))]
         class GeneralTab_VROptionsPatch
         {
@@ -31,9 +32,14 @@ namespace VREnhancements
                 {
                     VROptions.groundMoveScale = v / 100f;
                 });
-                __instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleYPos, 600, 1000, 800, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleYPos, 20, 75, 50, delegate (float v)
                 {
                     subtitleYPos = v;
+                    UIElementsFixes.SetSubtitleHeight(subtitleYPos);
+                });
+                __instance.AddSliderOption(generalTabIndex, "PDA Distance", PDA_Distance * 100f, 15, 40, 28, delegate (float v)
+                {
+                    PDA_Distance = v / 100f;
                 });
             }
 
@@ -57,6 +63,8 @@ namespace VREnhancements
                 GameOptions.enableVrAnimations = serializer.Serialize("VR/EnableVRAnimations", GameOptions.enableVrAnimations);
                 VROptions.groundMoveScale = serializer.Serialize("VR/GroundMoveScale", VROptions.groundMoveScale);
                 immersiveHUD = serializer.Serialize("VR/ImmersiveHUD", immersiveHUD);
+                subtitleYPos = serializer.Serialize("VR/SubtitleYPos", subtitleYPos);
+                PDA_Distance = serializer.Serialize("VR/PDA_Distance", PDA_Distance);
             }
         }
 

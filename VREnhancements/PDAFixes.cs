@@ -17,22 +17,7 @@ namespace VREnhancements
         private static FullBodyBipedIK myIK;
 
         //This doesn't seem right. Not sure if this is the best method to patch for this.
-        [HarmonyPatch(typeof(PDA), nameof(PDA.ui))]
-        class GetUI_Patch
-        {
-            static void Postfix(PDA __instance)
-            {
-                GameObject screen = Traverse.Create(__instance).Field("screen").GetValue<GameObject>();//get private variable screen
-                uGUI_CanvasScaler component = screen.GetComponent<uGUI_CanvasScaler>();
-                /*component.transform.localScale = Vector3.one * 0.00032f;
-                __instance.transform.localScale = new Vector3(0.15f, 1f, 1f);
-                __instance.screenAnchor.transform.localPosition = new Vector3(-1.45f, -0.045f, 0f);*/
-                __instance.transform.localScale = new Vector3(pdaScale, pdaScale, 1f);
-                component.transform.localScale = Vector3.one * screenScale;
-                component.SetAnchor(__instance.screenAnchor);
-            }
-        }
-
+        
         [HarmonyPatch(typeof(PDA), nameof(PDA.Open))]
         class PDA_Open_Patch
         {
@@ -41,6 +26,13 @@ namespace VREnhancements
                 //if the PDA was opened
                 if (__result)
                 {
+                    //set the PDA and PDA Screen scale
+                    GameObject screen = Traverse.Create(__instance).Field("screen").GetValue<GameObject>();//get private variable screen
+                    uGUI_CanvasScaler component = screen.GetComponent<uGUI_CanvasScaler>();
+                    __instance.transform.localScale = new Vector3(pdaScale, pdaScale, 1f);
+                    component.transform.localScale = Vector3.one * screenScale;
+                    component.SetAnchor(__instance.screenAnchor);
+
                     if (!leftHandTarget)
                         leftHandTarget = new GameObject();
                     //leftHandTarget = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -48,9 +40,9 @@ namespace VREnhancements
                     // leftHandTarget.transform.localScale *= 0.05f;
                     leftHandTarget.transform.parent = Player.main.camRoot.transform;
                     if (Player.main.motorMode != Player.MotorMode.Vehicle)
-                        leftHandTarget.transform.localPosition = leftHandTarget.transform.parent.transform.InverseTransformPoint(Player.main.playerController.forwardReference.position + Player.main.armsController.transform.right * pdaXOffset + Vector3.up * -0.15f + new Vector3(Player.main.armsController.transform.forward.x, 0f, Player.main.armsController.transform.forward.z).normalized * pdaZOffset);
+                        leftHandTarget.transform.localPosition = leftHandTarget.transform.parent.transform.InverseTransformPoint(Player.main.playerController.forwardReference.position + Player.main.armsController.transform.right * pdaXOffset + Vector3.up * -0.15f + new Vector3(Player.main.armsController.transform.forward.x, 0f, Player.main.armsController.transform.forward.z).normalized * AdditionalVROptions.PDA_Distance);
                     else
-                        leftHandTarget.transform.localPosition = leftHandTarget.transform.parent.transform.InverseTransformPoint(leftHandTarget.transform.parent.transform.position + leftHandTarget.transform.parent.transform.right * pdaXOffset + leftHandTarget.transform.parent.transform.forward * pdaZOffset + leftHandTarget.transform.parent.transform.up * -0.15f);
+                        leftHandTarget.transform.localPosition = leftHandTarget.transform.parent.transform.InverseTransformPoint(leftHandTarget.transform.parent.transform.position + leftHandTarget.transform.parent.transform.right * pdaXOffset + leftHandTarget.transform.parent.transform.forward * AdditionalVROptions.PDA_Distance + leftHandTarget.transform.parent.transform.up * -0.15f);
                     leftHandTarget.transform.rotation = Player.main.armsController.transform.rotation * Quaternion.Euler(pdaXRot, pdaYRot, pdaZRot);
                 }
             }
