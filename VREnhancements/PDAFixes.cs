@@ -9,7 +9,6 @@ namespace VREnhancements
         private static float pdaScale = 1.45f;//1.75f;
         private static float screenScale = 0.0003f;//0.00035f;
         private static float pdaXOffset = -0.35f;
-        private static float pdaZOffset = 0.28f;
         private static float pdaXRot = 220f;
         private static float pdaYRot = 30f;
         private static float pdaZRot = 75f;

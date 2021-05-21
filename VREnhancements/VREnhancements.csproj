@@ -93,7 +93,7 @@
     <Compile Include="CameraFixes.cs" />
     <Compile Include="CinematicsAnimations.cs" />
     <Compile Include="CursorFixes.cs" />
-    <Compile Include="ImmersiveHUD.cs" />
+    <Compile Include="VRHUD.cs" />
     <Compile Include="LoadingScreenFix.cs" />
     <Compile Include="MainPatcher.cs" />
     <Compile Include="PDAFixes.cs" />

@@ -12,13 +12,22 @@ namespace VREnhancements
         {
             Subtitles.main.popup.oy = GraphicsUtil.GetScreenSize().y * percentage / 100;
         }
+        
+        /*
+        Adjusting the scale is also changing the position. See uGUI_PopupMessage GetCoords to work out how to fix this.
+        public static void SetSubtitleScale(float scale)
+        {
+            Subtitles.main.popup.GetComponent<RectTransform>().localScale = Vector3.one * scale;
+        }*/
 
         [HarmonyPatch(typeof(Subtitles), nameof(Subtitles.Start))]
         class SubtitlesPosition_Patch
-        {//Bring up the subtitles into view while in VR
+        {
+            //Bring up the subtitles into view while in VR
             static void Postfix(Subtitles __instance)
             {
                 SetSubtitleHeight(AdditionalVROptions.subtitleYPos);
+                //SetSubtitleScale(AdditionalVROptions.subtitleScale);
             }
         }
 
