@@ -10,6 +10,8 @@ namespace VREnhancements
         public static float subtitleScale = 1;
         public static float PDA_Distance = 0.28f;
         public static float HUDAlpha = 1;
+        public static float HUD_Distance = 1;
+        public static float HUD_Scale = 1;
         [HarmonyPatch(typeof(uGUI_OptionsPanel), nameof(uGUI_OptionsPanel.AddGeneralTab))]
         class GeneralTab_VROptionsPatch
         {
@@ -54,6 +56,16 @@ namespace VREnhancements
                 {
                     HUDAlpha = v / 100f;
                     VRHUD.UpdateHUDOpacity(HUDAlpha);
+                });
+                __instance.AddSliderOption(generalTabIndex, "HUD Distance", HUD_Distance / 0.5f, 1, 8, 2, delegate (float v)
+                {
+                    HUD_Distance = v * 0.5f;
+                    VRHUD.UpdateHUDDistance(HUD_Distance);
+                });
+                __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 1, 8, 2, delegate (float v)
+                {
+                    HUD_Scale = v * 0.5f;
+                    VRHUD.UpdateHUDScale(HUD_Scale);
                 });
             }
 
