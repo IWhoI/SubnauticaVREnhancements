@@ -34,12 +34,11 @@ namespace VREnhancements
                     subtitleYPos = v;
                     UIElementsFixes.SetSubtitleHeight(subtitleYPos);
                 });
-                /*See UIElementsFixes for why this is commented out.
-                 * __instance.AddSliderOption(generalTabIndex, "Subtitle Scale", subtitleScale * 100, 50, 200, 100, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "Subtitle Scale", subtitleScale * 100, 50, 150, 100, delegate (float v)
                 {
                     subtitleScale = v / 100;
                     UIElementsFixes.SetSubtitleScale(subtitleScale);
-                });*/
+                });
                 __instance.AddSliderOption(generalTabIndex, "PDA Distance", PDA_Distance * 100f, 20, 40, 28, delegate (float v)
                 {
                     PDA_Distance = v / 100f;
@@ -57,12 +56,12 @@ namespace VREnhancements
                     HUDAlpha = v / 100f;
                     VRHUD.UpdateHUDOpacity(HUDAlpha);
                 });
-                __instance.AddSliderOption(generalTabIndex, "HUD Distance", HUD_Distance / 0.5f, 1, 8, 2, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "HUD Distance", HUD_Distance / 0.5f, 1, 4, 2, delegate (float v)
                 {
                     HUD_Distance = v * 0.5f;
                     VRHUD.UpdateHUDDistance(HUD_Distance);
                 });
-                __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 1, 8, 2, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 1, 4, 2, delegate (float v)
                 {
                     HUD_Scale = v * 0.5f;
                     VRHUD.UpdateHUDScale(HUD_Scale);

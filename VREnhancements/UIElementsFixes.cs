@@ -13,12 +13,12 @@ namespace VREnhancements
             Subtitles.main.popup.oy = GraphicsUtil.GetScreenSize().y * percentage / 100;
         }
         
-        /*
-        Adjusting the scale is also changing the position. See uGUI_PopupMessage GetCoords to work out how to fix this.
+        
+        //Adjusting the scale is also changing the position. See uGUI_PopupMessage GetCoords to work out how to fix this.
         public static void SetSubtitleScale(float scale)
         {
             Subtitles.main.popup.GetComponent<RectTransform>().localScale = Vector3.one * scale;
-        }*/
+        }
 
         [HarmonyPatch(typeof(Subtitles), nameof(Subtitles.Start))]
         class SubtitlesPosition_Patch
@@ -26,8 +26,9 @@ namespace VREnhancements
             //Bring up the subtitles into view while in VR
             static void Postfix(Subtitles __instance)
             {
-                SetSubtitleHeight(AdditionalVROptions.subtitleYPos);
-                //SetSubtitleScale(AdditionalVROptions.subtitleScale);
+                __instance.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);//to keep subtitles centered when scaling.
+                SetSubtitleHeight(AdditionalVROptions.subtitleYPos);                
+                SetSubtitleScale(AdditionalVROptions.subtitleScale);
             }
         }
 
@@ -100,13 +101,13 @@ namespace VREnhancements
             {
                 if (__instance != null && recenterVRButton == null)
                 {
-                    //I think this is copying an existing button
+                    //Clone the quitToMainMenuButton and update it
                     Button menuButton = __instance.quitToMainMenuButton.transform.parent.GetChild(0).gameObject.GetComponent<Button>();
                     recenterVRButton = UnityEngine.Object.Instantiate<Button>(menuButton, __instance.quitToMainMenuButton.transform.parent);
                     recenterVRButton.transform.SetSiblingIndex(1);//put the button in the second position in the menu
                     recenterVRButton.name = "RecenterVR";
-                    recenterVRButton.onClick.RemoveAllListeners();//this seems to be removing listeners that would have been copied from the original button
-                                                                  //add new listener
+                    recenterVRButton.onClick.RemoveAllListeners();//remove cloned listeners
+                    //add new listener
                     recenterVRButton.onClick.AddListener(delegate ()
                     {
                         VRUtil.Recenter();
@@ -118,6 +119,21 @@ namespace VREnhancements
                         text.text = "Recenter VR";
                     }
                 }
+            }
+        }
+        [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.LateUpdate))]
+        class HR_LateUpdate_Patch
+        {
+            static bool Prefix(HandReticle __instance)
+            {
+                Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float activeHitDistance, null);
+                __instance.SetTargetDistance(activeHitDistance);    
+                // Traverse.Create(__instance).Field("targetDistance").SetValue(activeHitDistance);
+                if (Input.GetKeyUp(KeyCode.P))
+                {
+                    ErrorMessage.AddDebug("Target/Distance: " + activeTarget.name + "/" + activeHitDistance);
+                }
+                return true;
             }
         }
     }

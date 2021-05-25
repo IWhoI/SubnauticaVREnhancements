@@ -7,10 +7,6 @@ namespace VREnhancements
     class VRHUD
     {
         private static List<GameObject> HUDElements = new List<GameObject>();
-        private static float xRotation;
-        private static float zOffset;
-        private static float yOffset;
-        private static float scale = 1;
         public static uGUI_SceneHUD sceneHUD;
        
         //Add an element by name to the HUD Elements List. Should probably do extra checks to make sure the element is a child of the HUD.
@@ -53,18 +49,6 @@ namespace VREnhancements
             Debug.Log("HUD Scale: " + scale);
         }
 
-        /*[HarmonyPatch(typeof(Player), nameof(Player.Awake))]
-        class Player_Awake_Patch
-        {
-            static void Postfix(Player __instance)
-            {
-                AddHUDElement("BarsPanel");
-                AddHUDElement("QuickSlots");
-                AddHUDElement("SunbeamCountdown");
-            }
-
-        }*/
-
         [HarmonyPatch(typeof(uGUI_SceneHUD), nameof(uGUI_SceneHUD.Awake))]
         class SceneHUD_Awake_Patch
         {
@@ -96,12 +80,7 @@ namespace VREnhancements
                             UpdateHUDOpacity(0);
                     }
                 }
-                if (Input.GetKeyUp(KeyCode.Y))
-                {
-                    ErrorMessage.AddDebug("HUD RectT Scale: " + sceneHUD.GetComponent<RectTransform>().localScale);
-                }
             }
         }
-        
     }
 }
