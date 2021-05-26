@@ -3,7 +3,8 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.XR;
-
+using System.Collections.Generic;
+using System.Linq;
 
 namespace VREnhancements
 {
@@ -12,7 +13,10 @@ namespace VREnhancements
         public static void SetSubtitleHeight(float percentage)
         {
             Subtitles.main.popup.oy = GraphicsUtil.GetScreenSize().y * percentage / 100;
-        }   
+        }
+        
+        
+        //Adjusting the scale is also changing the position. See uGUI_PopupMessage GetCoords to work out how to fix this.
         public static void SetSubtitleScale(float scale)
         {
             Subtitles.main.popup.GetComponent<RectTransform>().localScale = Vector3.one * scale;
@@ -90,6 +94,35 @@ namespace VREnhancements
             }
         }
 
+        [HarmonyPatch(typeof(IngameMenu), nameof(IngameMenu.Awake))]
+        class IGM_Awake_Patch
+        {
+            private static Button recenterVRButton;
+            //code copied from the quit to desktop mod and modified
+            static void Postfix(IngameMenu __instance)
+            {
+                if (__instance != null && recenterVRButton == null)
+                {
+                    //Clone the quitToMainMenuButton and update it
+                    Button menuButton = __instance.quitToMainMenuButton.transform.parent.GetChild(0).gameObject.GetComponent<Button>();
+                    recenterVRButton = UnityEngine.Object.Instantiate<Button>(menuButton, __instance.quitToMainMenuButton.transform.parent);
+                    recenterVRButton.transform.SetSiblingIndex(1);//put the button in the second position in the menu
+                    recenterVRButton.name = "RecenterVR";
+                    recenterVRButton.onClick.RemoveAllListeners();//remove cloned listeners
+                    //add new listener
+                    recenterVRButton.onClick.AddListener(delegate ()
+                    {
+                        VRUtil.Recenter();
+                    });
+                    //might be a better way to replace the text of the copied button
+                    IEnumerable<Text> enumerable = recenterVRButton.GetComponents<Text>().Concat(recenterVRButton.GetComponentsInChildren<Text>());
+                    foreach (Text text in enumerable)
+                    {
+                        text.text = "Recenter VR";
+                    }
+                }
+            }
+        }
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.LateUpdate))]
         class HR_LateUpdate_Patch
         {
