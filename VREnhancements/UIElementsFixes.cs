@@ -1,8 +1,9 @@
 ﻿using HarmonyLib;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections.Generic;
-using System.Linq;
+using UnityEngine.EventSystems;
+using UnityEngine.XR;
+
 
 namespace VREnhancements
 {
@@ -11,10 +12,7 @@ namespace VREnhancements
         public static void SetSubtitleHeight(float percentage)
         {
             Subtitles.main.popup.oy = GraphicsUtil.GetScreenSize().y * percentage / 100;
-        }
-        
-        
-        //Adjusting the scale is also changing the position. See uGUI_PopupMessage GetCoords to work out how to fix this.
+        }   
         public static void SetSubtitleScale(float scale)
         {
             Subtitles.main.popup.GetComponent<RectTransform>().localScale = Vector3.one * scale;
@@ -92,48 +90,73 @@ namespace VREnhancements
             }
         }
 
-        [HarmonyPatch(typeof(IngameMenu), nameof(IngameMenu.Awake))]
-        class IGM_Awake_Patch
-        {
-            private static Button recenterVRButton;
-            //code copied from the quit to desktop mod and modified
-            static void Postfix(IngameMenu __instance)
-            {
-                if (__instance != null && recenterVRButton == null)
-                {
-                    //Clone the quitToMainMenuButton and update it
-                    Button menuButton = __instance.quitToMainMenuButton.transform.parent.GetChild(0).gameObject.GetComponent<Button>();
-                    recenterVRButton = UnityEngine.Object.Instantiate<Button>(menuButton, __instance.quitToMainMenuButton.transform.parent);
-                    recenterVRButton.transform.SetSiblingIndex(1);//put the button in the second position in the menu
-                    recenterVRButton.name = "RecenterVR";
-                    recenterVRButton.onClick.RemoveAllListeners();//remove cloned listeners
-                    //add new listener
-                    recenterVRButton.onClick.AddListener(delegate ()
-                    {
-                        VRUtil.Recenter();
-                    });
-                    //might be a better way to replace the text of the copied button
-                    IEnumerable<Text> enumerable = recenterVRButton.GetComponents<Text>().Concat(recenterVRButton.GetComponentsInChildren<Text>());
-                    foreach (Text text in enumerable)
-                    {
-                        text.text = "Recenter VR";
-                    }
-                }
-            }
-        }
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.LateUpdate))]
         class HR_LateUpdate_Patch
         {
             static bool Prefix(HandReticle __instance)
             {
-                Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float activeHitDistance, null);
-                __instance.SetTargetDistance(activeHitDistance);    
-                // Traverse.Create(__instance).Field("targetDistance").SetValue(activeHitDistance);
-                if (Input.GetKeyUp(KeyCode.P))
+                if (Player.main)
                 {
-                    ErrorMessage.AddDebug("Target/Distance: " + activeTarget.name + "/" + activeHitDistance);
+                    Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float activeHitDistance, null);
+                    __instance.SetTargetDistance(activeHitDistance);
+                    if (Input.GetKeyUp(KeyCode.P))
+                    {
+                        ErrorMessage.AddDebug("Target/Distance: " + activeTarget.name + "/" + activeHitDistance);
+                    }
                 }
                 return true;
+            }
+            static void Postfix(HandReticle __instance)
+            {
+                __instance.transform.position = new Vector3(0f, 0f, __instance.transform.position.z);
+            }
+        }
+
+        static bool actualGazedBasedCursor;
+        [HarmonyPatch(typeof(FPSInputModule), nameof(FPSInputModule.GetCursorScreenPosition))]
+        class GetCursorScreenPosition_Patch
+        {
+            static void Postfix(FPSInputModule __instance, ref Vector2 __result)
+            {
+                if (XRSettings.enabled)
+                {
+                    if (Cursor.lockState == CursorLockMode.Locked)
+                    {
+                        __result = GraphicsUtil.GetScreenSize() * 0.5f;
+                    }
+                    else if (!actualGazedBasedCursor)
+                        //fix cursor snapping to middle of view when cursor goes off canvas due to hack in UpdateCursor
+                        //Screen.width gives monitor width and GraphicsUtil.GetScreenSize().x will give either monitor or VR eye texture width
+                        __result = new Vector2(Input.mousePosition.x / Screen.width * GraphicsUtil.GetScreenSize().x, Input.mousePosition.y / Screen.height * GraphicsUtil.GetScreenSize().y);
+
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(FPSInputModule), nameof(FPSInputModule.UpdateCursor))]
+        class UpdateCursor_Patch
+        {
+            static void Prefix()
+            {
+                //save the original value so we can set it back in the postfix
+                actualGazedBasedCursor = VROptions.gazeBasedCursor;
+                //trying make flag in UpdateCursor be true if Cursor.lockState != CursorLockMode.Locked
+                if (Cursor.lockState != CursorLockMode.Locked)
+                {
+                    VROptions.gazeBasedCursor = true;
+                }
+
+            }
+            static void Postfix(FPSInputModule __instance)
+            {
+                VROptions.gazeBasedCursor = actualGazedBasedCursor;
+                //Fix the problem with the cursor rendering behind UI elements.
+                Canvas cursorCanvas = __instance._cursor.GetComponentInChildren<Graphic>().canvas;
+                RaycastResult lastRaycastResult = Traverse.Create(__instance).Field("lastRaycastResult").GetValue<RaycastResult>();
+                if (cursorCanvas && lastRaycastResult.isValid)
+                {
+                    cursorCanvas.sortingLayerID = lastRaycastResult.sortingLayer;//put the cursor on the same layer as whatever was hit by the cursor raycast.
+                }
             }
         }
     }
