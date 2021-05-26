@@ -15,6 +15,7 @@ namespace VREnhancements
         [HarmonyPatch(typeof(uGUI_OptionsPanel), nameof(uGUI_OptionsPanel.AddGeneralTab))]
         class GeneralTab_VROptionsPatch
         {
+            //TODO: Create a new tab instead of using general for all the additional VR options and if possible move existing VR to the same tab
             static void Postfix(uGUI_OptionsPanel __instance)
             {
                 __instance.AddHeading(generalTabIndex, "Additional VR Options");//add new heading under the General Tab
@@ -39,7 +40,7 @@ namespace VREnhancements
                     subtitleScale = v / 100;
                     UIElementsFixes.SetSubtitleScale(subtitleScale);
                 });
-                __instance.AddSliderOption(generalTabIndex, "PDA Distance", PDA_Distance * 100f, 20, 40, 28, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "PDA Distance", PDA_Distance * 100f, 25, 40, 40, delegate (float v)
                 {
                     PDA_Distance = v / 100f;
                 });
@@ -84,10 +85,10 @@ namespace VREnhancements
         {
             static void Postfix(GameSettings.ISerializer serializer)
             {
-                //for saving the VR animation setting
+                //TODO: Serialize all additional options
                 GameOptions.enableVrAnimations = serializer.Serialize("VR/EnableVRAnimations", GameOptions.enableVrAnimations);
                 VROptions.groundMoveScale = serializer.Serialize("VR/GroundMoveScale", VROptions.groundMoveScale);
-                DynamicHUD = serializer.Serialize("VR/ImmersiveHUD", DynamicHUD);
+                DynamicHUD = serializer.Serialize("VR/DynamicHUD", DynamicHUD);
                 subtitleYPos = serializer.Serialize("VR/SubtitleYPos", subtitleYPos);
                 PDA_Distance = serializer.Serialize("VR/PDA_Distance", PDA_Distance);
             }
