@@ -26,12 +26,13 @@ namespace VREnhancements
         {
             foreach (GameObject element in HUDElements)
             {
-                foreach (CanvasRenderer renderer in element.GetComponentsInChildren<CanvasRenderer>())
-                {
-                    //there has to be a better way to select which renderers are affected. This is to maintain the invisible Sunbeam background set in UIElementsFixes
-                    if(!(renderer.transform.parent.name=="SunbeamCountdown" && renderer.name=="Background"))
-                        renderer.SetAlpha(alpha);
-                }
+                if(element)
+                    foreach (CanvasRenderer renderer in element.GetComponentsInChildren<CanvasRenderer>())
+                    {
+                        //there has to be a better way to select which renderers are affected. This is to maintain the invisible Sunbeam background set in UIElementsFixes
+                        if(!(renderer.transform.parent.name=="SunbeamCountdown" && renderer.name=="Background"))
+                            renderer.SetAlpha(alpha);
+                    }
             }
         }
         public static void UpdateHUDDistance(float distance)
@@ -71,7 +72,7 @@ namespace VREnhancements
             {
                 if (AdditionalVROptions.DynamicHUD)
                 {                    
-                    if(Player.main != null)
+                    if(MainCamera.camera)
                     {
                         //fades the hud in based on the angle that the player is looking in. Straight up is 270 and forward is 360/0
                         if (MainCamera.camera.transform.localEulerAngles.x < 180)
