@@ -94,51 +94,31 @@ namespace VREnhancements
             }
         }
 
-        [HarmonyPatch(typeof(IngameMenu), nameof(IngameMenu.Awake))]
-        class IGM_Awake_Patch
-        {
-            private static Button recenterVRButton;
-            //code copied from the quit to desktop mod and modified
-            static void Postfix(IngameMenu __instance)
-            {
-                if (__instance != null && recenterVRButton == null)
-                {
-                    //Clone the quitToMainMenuButton and update it
-                    Button menuButton = __instance.quitToMainMenuButton.transform.parent.GetChild(0).gameObject.GetComponent<Button>();
-                    recenterVRButton = UnityEngine.Object.Instantiate<Button>(menuButton, __instance.quitToMainMenuButton.transform.parent);
-                    recenterVRButton.transform.SetSiblingIndex(1);//put the button in the second position in the menu
-                    recenterVRButton.name = "RecenterVR";
-                    recenterVRButton.onClick.RemoveAllListeners();//remove cloned listeners
-                    //add new listener
-                    recenterVRButton.onClick.AddListener(delegate ()
-                    {
-                        VRUtil.Recenter();
-                    });
-                    //might be a better way to replace the text of the copied button
-                    IEnumerable<Text> enumerable = recenterVRButton.GetComponents<Text>().Concat(recenterVRButton.GetComponentsInChildren<Text>());
-                    foreach (Text text in enumerable)
-                    {
-                        text.text = "Recenter VR";
-                    }
-                }
-            }
-        }
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.LateUpdate))]
         class HR_LateUpdate_Patch
         {
+            //fixes the reticle distance not matching the interface element distance e.g. Cyclops helm hud.
             static bool Prefix(HandReticle __instance)
             {
+                float reticleDistance;
                 if (Player.main)
                 {
-                    Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float activeHitDistance, null);
-                    __instance.SetTargetDistance(activeHitDistance);
-                    if (Input.GetKeyUp(KeyCode.P))
+                    //if piloting the cyclops and not using cyclops cameras
+                    if (Player.main.isPiloting && Player.main.GetCurrentSub().isCyclops && !uGUI_CameraCyclops.main.content.activeSelf)
                     {
-                        ErrorMessage.AddDebug("Target/Distance: " + activeTarget.name + "/" + activeHitDistance);
+                        Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out reticleDistance, null);
+                        __instance.SetTargetDistance(reticleDistance > 1.55f ? 1.55f : reticleDistance);
+                    }
+                    else if (Player.main.GetMode() == Player.Mode.LockedPiloting || uGUI_CameraCyclops.main.content.activeSelf)
+                    {
+                        reticleDistance = AdditionalVROptions.HUD_Distance;
+                        __instance.SetTargetDistance(reticleDistance);
                     }
                 }
+                
                 return true;
             }
+            //this fixes reticle alignment in menus etc
             static void Postfix(HandReticle __instance)
             {
                 __instance.transform.position = new Vector3(0f, 0f, __instance.transform.position.z);
