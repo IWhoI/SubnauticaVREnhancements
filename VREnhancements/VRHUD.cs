@@ -72,7 +72,7 @@ namespace VREnhancements
             {
                 if (AdditionalVROptions.DynamicHUD)
                 {                    
-                    if(Player.main != null)
+                    if(MainCamera.camera)
                     {
                         //fades the hud in based on the angle that the player is looking in. Straight up is 270 and forward is 360/0
                         if (MainCamera.camera.transform.localEulerAngles.x < 180)
