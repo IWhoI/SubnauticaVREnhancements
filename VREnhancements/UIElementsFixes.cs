@@ -94,35 +94,6 @@ namespace VREnhancements
             }
         }
 
-        [HarmonyPatch(typeof(IngameMenu), nameof(IngameMenu.Awake))]
-        class IGM_Awake_Patch
-        {
-            private static Button recenterVRButton;
-            //code copied from the quit to desktop mod and modified
-            static void Postfix(IngameMenu __instance)
-            {
-                if (__instance != null && recenterVRButton == null)
-                {
-                    //Clone the quitToMainMenuButton and update it
-                    Button menuButton = __instance.quitToMainMenuButton.transform.parent.GetChild(0).gameObject.GetComponent<Button>();
-                    recenterVRButton = UnityEngine.Object.Instantiate<Button>(menuButton, __instance.quitToMainMenuButton.transform.parent);
-                    recenterVRButton.transform.SetSiblingIndex(1);//put the button in the second position in the menu
-                    recenterVRButton.name = "RecenterVR";
-                    recenterVRButton.onClick.RemoveAllListeners();//remove cloned listeners
-                    //add new listener
-                    recenterVRButton.onClick.AddListener(delegate ()
-                    {
-                        VRUtil.Recenter();
-                    });
-                    //might be a better way to replace the text of the copied button
-                    IEnumerable<Text> enumerable = recenterVRButton.GetComponents<Text>().Concat(recenterVRButton.GetComponentsInChildren<Text>());
-                    foreach (Text text in enumerable)
-                    {
-                        text.text = "Recenter VR";
-                    }
-                }
-            }
-        }
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.LateUpdate))]
         class HR_LateUpdate_Patch
         {

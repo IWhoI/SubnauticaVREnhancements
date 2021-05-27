@@ -26,12 +26,13 @@ namespace VREnhancements
         {
             foreach (GameObject element in HUDElements)
             {
-                foreach (CanvasRenderer renderer in element.GetComponentsInChildren<CanvasRenderer>())
-                {
-                    //there has to be a better way to select which renderers are affected. This is to maintain the invisible Sunbeam background set in UIElementsFixes
-                    if(!(renderer.transform.parent.name=="SunbeamCountdown" && renderer.name=="Background"))
-                        renderer.SetAlpha(alpha);
-                }
+                if(element)
+                    foreach (CanvasRenderer renderer in element.GetComponentsInChildren<CanvasRenderer>())
+                    {
+                        //there has to be a better way to do this. This is to maintain the invisible Sunbeam background set in UIElementsFixes
+                        if(!(renderer.transform.parent.name=="SunbeamCountdown" && renderer.name=="Background"))
+                            renderer.SetAlpha(alpha);
+                    }
             }
         }
         public static void UpdateHUDDistance(float distance)
