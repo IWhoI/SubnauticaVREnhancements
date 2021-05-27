@@ -97,19 +97,6 @@ namespace VREnhancements
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.LateUpdate))]
         class HR_LateUpdate_Patch
         {
-            static bool Prefix(HandReticle __instance)
-            {
-                if (Player.main)
-                {
-                    Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float activeHitDistance, null);
-                    __instance.SetTargetDistance(activeHitDistance);
-                    if (Input.GetKeyUp(KeyCode.P))
-                    {
-                        ErrorMessage.AddDebug("Target/Distance: " + activeTarget.name + "/" + activeHitDistance);
-                    }
-                }
-                return true;
-            }
             static void Postfix(HandReticle __instance)
             {
                 __instance.transform.position = new Vector3(0f, 0f, __instance.transform.position.z);
