@@ -7,14 +7,16 @@ namespace VREnhancements
 {
     class AdditionalVROptions
     {
+        //TODO: These should probably be private with public getters
         public static int generalTabIndex = 0;
         public static bool DynamicHUD = false;
         public static float subtitleYPos = 40;
         public static float subtitleScale = 1;
         public static float PDA_Distance = 0.28f;
-        public static float HUDAlpha = 1;
+        public static float HUD_Alpha = 1;
         public static float HUD_Distance = 1;
         public static float HUD_Scale = 1;
+        
         [HarmonyPatch(typeof(uGUI_OptionsPanel), nameof(uGUI_OptionsPanel.AddGeneralTab))]
         class GeneralTab_VROptionsPatch
         {
@@ -52,20 +54,20 @@ namespace VREnhancements
                 {
                     DynamicHUD = v;
                     if(!DynamicHUD)
-                        VRHUD.UpdateHUDOpacity(HUDAlpha);
+                        VRHUD.UpdateHUDOpacity(HUD_Alpha);
 
                 });
-                __instance.AddSliderOption(generalTabIndex, "HUD Opacity", HUDAlpha * 100f, 20, 100, 100, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "HUD Opacity", HUD_Alpha * 100f, 20, 100, 100, delegate (float v)
                 {
-                    HUDAlpha = v / 100f;
-                    VRHUD.UpdateHUDOpacity(HUDAlpha);
+                    HUD_Alpha = v / 100f;
+                    VRHUD.UpdateHUDOpacity(HUD_Alpha);
                 });
-                __instance.AddSliderOption(generalTabIndex, "HUD Distance", HUD_Distance / 0.5f, 1, 4, 2, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "HUD Distance", HUD_Distance / 0.5f, 2, 4, 3, delegate (float v)
                 {
                     HUD_Distance = v * 0.5f;
                     VRHUD.UpdateHUDDistance(HUD_Distance);
                 });
-                __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 1, 4, 2, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 2, 4, 2, delegate (float v)
                 {
                     HUD_Scale = v * 0.5f;
                     VRHUD.UpdateHUDScale(HUD_Scale);
@@ -122,9 +124,13 @@ namespace VREnhancements
                 //TODO: Serialize all additional options
                 GameOptions.enableVrAnimations = serializer.Serialize("VR/EnableVRAnimations", GameOptions.enableVrAnimations);
                 VROptions.groundMoveScale = serializer.Serialize("VR/GroundMoveScale", VROptions.groundMoveScale);
-                DynamicHUD = serializer.Serialize("VR/DynamicHUD", DynamicHUD);
+                subtitleScale = serializer.Serialize("VR/SubtitleScale", subtitleScale);
                 subtitleYPos = serializer.Serialize("VR/SubtitleYPos", subtitleYPos);
                 PDA_Distance = serializer.Serialize("VR/PDA_Distance", PDA_Distance);
+                DynamicHUD = serializer.Serialize("VR/DynamicHUD", DynamicHUD);
+                HUD_Distance = serializer.Serialize("VR/HUD_Distance", HUD_Distance);
+                HUD_Scale = serializer.Serialize("VR/HUD_Scale", HUD_Scale);
+                HUD_Alpha = serializer.Serialize("VR/HUD_Alpha", HUD_Alpha);
             }
         }
 

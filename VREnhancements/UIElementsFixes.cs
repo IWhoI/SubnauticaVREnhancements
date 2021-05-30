@@ -10,6 +10,9 @@ namespace VREnhancements
 {
     class UIElementsFixes
     {
+        static RectTransform CameraCyclopsHUD;
+        static RectTransform CameraDroneHUD;
+        static float CameraHUDScaleFactor = 0.6f;
         public static void SetSubtitleHeight(float percentage)
         {
             Subtitles.main.popup.oy = GraphicsUtil.GetScreenSize().y * percentage / 100;
@@ -39,13 +42,11 @@ namespace VREnhancements
         {
             public static void Postfix(uGUI_SunbeamCountdown __instance)
             {
-                Vector2 midCenter = new Vector2(0.5f, 0.5f);
-                __instance.countdownHolder.GetComponent<RectTransform>().anchorMax = midCenter;
-                __instance.countdownHolder.GetComponent<RectTransform>().anchorMin = midCenter;
-                __instance.countdownHolder.GetComponent<RectTransform>().pivot = midCenter;
-                __instance.countdownHolder.GetComponent<RectTransform>().anchoredPosition = new Vector2(0f, -275f);
-                __instance.countdownHolder.GetComponent<RectTransform>().localScale = Vector3.one * 0.75f;
-                __instance.transform.Find("Background").GetComponent<CanvasRenderer>().SetAlpha(0f);
+                RectTransform SunbeamRect = __instance.countdownHolder.GetComponent<RectTransform>();
+                SunbeamRect.anchorMax = SunbeamRect.anchorMin = SunbeamRect.pivot = new Vector2(0.5f, 0.5f);
+                SunbeamRect.anchoredPosition = new Vector2(0f, -275f);
+                SunbeamRect.localScale = Vector3.one * 0.75f;
+                __instance.transform.Find("Background").GetComponent<CanvasRenderer>().SetAlpha(0f);//hide background
             }
 
         }
@@ -57,11 +58,10 @@ namespace VREnhancements
             //Look into moving the HUD further back instead of scaling it down.
             static void Postfix(uGUI_CameraDrone __instance)
             {
-                GameObject droneCamera = __instance.transform.Find("Content").Find("CameraScannerRoom").gameObject;
-                if (droneCamera != null)
+                CameraDroneHUD = __instance.transform.Find("Content/CameraScannerRoom").GetComponent<RectTransform>();
+                if (CameraDroneHUD)
                 {
-                    droneCamera.GetComponent<RectTransform>().localScale = new Vector3(0.6f, 0.6f, 1f);
-                    return;
+                    CameraDroneHUD.localScale = new Vector3(CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, 1f);
                 }
             }
         }
@@ -71,21 +71,22 @@ namespace VREnhancements
         {
             static void Postfix(uGUI_CameraCyclops __instance)
             {
-                GameObject cyclopsCamera = __instance.transform.Find("Content").Find("CameraCyclops").gameObject;
-                if (cyclopsCamera != null)
+                CameraCyclopsHUD = __instance.transform.Find("Content/CameraCyclops").GetComponent<RectTransform>();
+                if (CameraCyclopsHUD)
                 {
-                    cyclopsCamera.GetComponent<RectTransform>().localScale = new Vector3(0.7f, 0.7f, 1f);
-                    return;
+                    CameraCyclopsHUD.localScale = new Vector3(CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, 1f);
                 }
+
             }
         }
+
         [HarmonyPatch(typeof(uGUI_MainMenu), nameof(uGUI_MainMenu.Awake))]
         class MM_Awake_Patch
         {
             static void Postfix(uGUI_MainMenu __instance)
             {
                 //shift the main menu up a little. Fix this. Possibly make the menu track the players head with a delay.
-                GameObject mainMenu = __instance.transform.Find("Panel").Find("MainMenu").gameObject;
+                GameObject mainMenu = __instance.transform.Find("Panel/MainMenu").gameObject;
                 if (mainMenu != null)
                 {
                     mainMenu.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 385);
@@ -100,22 +101,20 @@ namespace VREnhancements
             //fixes the reticle distance not matching the interface element distance e.g. Cyclops helm hud.
             static bool Prefix(HandReticle __instance)
             {
-                float reticleDistance;
                 if (Player.main)
                 {
+                    SubRoot currSub = Player.main.GetCurrentSub();
                     //if piloting the cyclops and not using cyclops cameras
-                    if (Player.main.isPiloting && Player.main.GetCurrentSub().isCyclops && !uGUI_CameraCyclops.main.content.activeSelf)
+                    if (Player.main.isPiloting && currSub && currSub.isCyclops && !CameraCyclopsHUD.gameObject.activeInHierarchy)
                     {
-                        Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out reticleDistance, null);
+                        Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float reticleDistance, null);
                         __instance.SetTargetDistance(reticleDistance > 1.55f ? 1.55f : reticleDistance);
                     }
-                    else if (Player.main.GetMode() == Player.Mode.LockedPiloting || uGUI_CameraCyclops.main.content.activeSelf)
+                    else if (Player.main.GetMode() == Player.Mode.LockedPiloting || CameraCyclopsHUD.gameObject.activeInHierarchy)
                     {
-                        reticleDistance = AdditionalVROptions.HUD_Distance;
-                        __instance.SetTargetDistance(reticleDistance);
+                        __instance.SetTargetDistance(AdditionalVROptions.HUD_Distance);
                     }
                 }
-                
                 return true;
             }
             //this fixes reticle alignment in menus etc
