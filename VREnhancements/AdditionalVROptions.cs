@@ -67,7 +67,7 @@ namespace VREnhancements
                     HUD_Distance = v * 0.5f;
                     VRHUD.UpdateHUDDistance(HUD_Distance);
                 });
-                __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 2, 4, 2, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 1, 4, 2, delegate (float v)
                 {
                     HUD_Scale = v * 0.5f;
                     VRHUD.UpdateHUDScale(HUD_Scale);

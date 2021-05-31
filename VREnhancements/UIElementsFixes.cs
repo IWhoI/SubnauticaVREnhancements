@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.XR;
+using UnityEngine.PostProcessing;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -98,16 +99,16 @@ namespace VREnhancements
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.LateUpdate))]
         class HR_LateUpdate_Patch
         {
-            //fixes the reticle distance not matching the interface element distance e.g. Cyclops helm hud.
+            //fixes the reticle distance being locked to the interaction distance
             static bool Prefix(HandReticle __instance)
             {
                 if (Player.main)
                 {
+                    Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float reticleDistance, null);
                     SubRoot currSub = Player.main.GetCurrentSub();
                     //if piloting the cyclops and not using cyclops cameras
                     if (Player.main.isPiloting && currSub && currSub.isCyclops && !CameraCyclopsHUD.gameObject.activeInHierarchy)
                     {
-                        Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float reticleDistance, null);
                         __instance.SetTargetDistance(reticleDistance > 1.55f ? 1.55f : reticleDistance);
                     }
                     else if (Player.main.GetMode() == Player.Mode.LockedPiloting || CameraCyclopsHUD.gameObject.activeInHierarchy)
