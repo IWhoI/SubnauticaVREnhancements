@@ -95,7 +95,6 @@
     <Compile Include="AdditionalVROptions.cs" />
     <Compile Include="CameraFixes.cs" />
     <Compile Include="CinematicsAnimations.cs" />
-    <Compile Include="VRHUD.cs" />
     <Compile Include="LoadingScreenFix.cs" />
     <Compile Include="MainPatcher.cs" />
     <Compile Include="PDAFixes.cs" />

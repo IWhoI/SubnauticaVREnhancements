@@ -11,16 +11,126 @@ namespace VREnhancements
 {
     class UIElementsFixes
     {
+        //TODO: Alot of this is messy and could probably be done better.
         static RectTransform CameraCyclopsHUD;
         static RectTransform CameraDroneHUD;
-        static float CameraHUDScaleFactor = 0.6f;
+        static float CameraHUDScaleFactor = 0.6f;        
+        private static List<GameObject> DynamicHUDElements = new List<GameObject>();
+        public static uGUI_SceneHUD sceneHUD;
+
+        //Add an element by name to the HUD Elements List.
+        public static bool AddHUDElement(string name)
+        {
+            GameObject element = GameObject.Find(name);
+            if (element && !DynamicHUDElements.Contains(element))
+            {
+                DynamicHUDElements.Add(element);
+                return true;
+            }
+            return false;
+        }
+        public static void UpdateHUDOpacity(float alpha)
+        {
+            //using the DynamicHUDElements list to set the alpha of elements that are not affected by the HUD CanvasGroup. eg Sunbeam Timer
+            foreach (GameObject element in DynamicHUDElements)
+            {
+                if (element)
+                    foreach (CanvasRenderer renderer in element.GetComponentsInChildren<CanvasRenderer>())
+                    {
+                        //there has to be a better way to do this. This is to maintain the invisible Sunbeam background set in UIElementsFixes
+                        if (!(renderer.transform.parent.name == "SunbeamCountdown" && renderer.name == "Background"))
+                            renderer.SetAlpha(alpha);
+                    }
+            }
+            if (sceneHUD.GetComponent<CanvasGroup>())
+                sceneHUD.GetComponent<CanvasGroup>().alpha = alpha;
+            CanvasGroup HandReticleCG = HandReticle.main.GetComponent<CanvasGroup>();
+            if (HandReticleCG)
+            {
+                HandReticleCG.ignoreParentGroups = true;//not sure if this will cause issues when changes are made to the ScreenCanvas CanvasGroup
+                HandReticleCG.alpha = 1;
+            }
+
+        }
+        public static void UpdateHUDDistance(float distance)
+        {
+            if (sceneHUD)
+            {
+                sceneHUD.GetComponentInParent<Canvas>().transform.position =
+                    new Vector3(sceneHUD.GetComponentInParent<Canvas>().transform.position.x,
+                    sceneHUD.GetComponentInParent<Canvas>().transform.position.y,
+                    distance);
+            }
+        }
+        public static void UpdateHUDScale(float scale)
+        {
+            if (sceneHUD)
+                sceneHUD.GetComponent<RectTransform>().localScale = Vector3.one * scale;
+        }
+
+        static void InitHUD()
+        {
+            AddHUDElement("SunbeamCountdown");
+            UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
+            UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
+            UpdateHUDScale(AdditionalVROptions.HUD_Scale);
+        }
+
+
+        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.End))]
+        class SceneLoading_End_Patch
+        {
+            static void Postfix(uGUI_SceneLoading __instance)
+            {
+                //only update HUD parameters after loading to make sure AdditionalVROptions are loaded first. Might have a better way to do this.
+                InitHUD();
+            }
+        }
+
+
+        [HarmonyPatch(typeof(uGUI_SceneHUD), nameof(uGUI_SceneHUD.Awake))]
+        class SceneHUD_Awake_Patch
+        {
+            static void Postfix(uGUI_SceneHUD __instance)
+            {
+                sceneHUD = __instance;//keep a reference to HUD
+                //add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
+                sceneHUD.gameObject.AddComponent<CanvasGroup>();
+            }
+        }
+
+
+        [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.Start))]
+        class HandReticle_Start_Patch
+        {
+            static void Postfix(uGUI_SceneHUD __instance)
+            {
+                //add CanvasGroup to the HandReticle to be able to override the HUD CanvasGroup alpha settings to keep the Reticle always opaque.
+                if (HandReticle.main)
+                    HandReticle.main.gameObject.AddComponent<CanvasGroup>();
+            }
+        }
+
+        [HarmonyPatch(typeof(uGUI_SceneHUD), nameof(uGUI_SceneHUD.Update))]
+        class SceneHUD_Update_Patch
+        {
+            static void Postfix(uGUI_SceneHUD __instance)
+            {
+                if (AdditionalVROptions.DynamicHUD && MainCamera.camera)
+                {
+                    //fades the hud in based on the angle that the player is looking in. Straight up is 270 and forward is 360/0
+                    if (MainCamera.camera.transform.localEulerAngles.x < 180)
+                        UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - 30) / 15, 0, 1) * AdditionalVROptions.HUD_Alpha);
+                    else
+                        UpdateHUDOpacity(0);
+                }
+            }
+        }
+        //TODO: I think there might be a better way to do this than setting the oy value. See SetSubtitleScale.
         public static void SetSubtitleHeight(float percentage)
         {
             Subtitles.main.popup.oy = GraphicsUtil.GetScreenSize().y * percentage / 100;
         }
-        
-        
-        //Adjusting the scale is also changing the position. See uGUI_PopupMessage GetCoords to work out how to fix this.
         public static void SetSubtitleScale(float scale)
         {
             Subtitles.main.popup.GetComponent<RectTransform>().localScale = Vector3.one * scale;
@@ -29,7 +139,6 @@ namespace VREnhancements
         [HarmonyPatch(typeof(Subtitles), nameof(Subtitles.Start))]
         class SubtitlesPosition_Patch
         {
-            //Bring up the subtitles into view while in VR
             static void Postfix(Subtitles __instance)
             {
                 __instance.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);//to keep subtitles centered when scaling.
@@ -41,6 +150,8 @@ namespace VREnhancements
         [HarmonyPatch(typeof(uGUI_SunbeamCountdown), nameof(uGUI_SunbeamCountdown.Start))]
         class SunbeamCountdown_Start_Patch
         {
+            //makes the Sunbeam timer visible by moving it from the top right to bottom middle. Also hides the timer background.
+            //TODO: consider removing the background component completely so the workaround in SetHUDOpacity will be unnescessary.
             public static void Postfix(uGUI_SunbeamCountdown __instance)
             {
                 RectTransform SunbeamRect = __instance.countdownHolder.GetComponent<RectTransform>();
@@ -55,8 +166,7 @@ namespace VREnhancements
         [HarmonyPatch(typeof(uGUI_CameraDrone), nameof(uGUI_CameraDrone.Awake))]
         class CameraDrone_Awake_Patch
         {
-            //Reduce the size of the HUD in the Drone Camera to make the health and energy bars visible
-            //Look into moving the HUD further back instead of scaling it down.
+            //Reduce the size of the HUD in the Drone Camera to make edges visible
             static void Postfix(uGUI_CameraDrone __instance)
             {
                 CameraDroneHUD = __instance.transform.Find("Content/CameraScannerRoom").GetComponent<RectTransform>();
@@ -70,6 +180,7 @@ namespace VREnhancements
         [HarmonyPatch(typeof(uGUI_CameraCyclops), nameof(uGUI_CameraCyclops.Awake))]
         class CameraCyclops_Awake_Patch
         {
+            //Reduce the size of the HUD in the Cyclops Camera to make edges visible
             static void Postfix(uGUI_CameraCyclops __instance)
             {
                 CameraCyclopsHUD = __instance.transform.Find("Content/CameraCyclops").GetComponent<RectTransform>();
@@ -86,9 +197,11 @@ namespace VREnhancements
         {
             static void Postfix(uGUI_MainMenu __instance)
             {
-                //shift the main menu up a little. Fix this. Possibly make the menu track the players head with a delay.
+                //shift the main menu up a little.
+                //TODO: Make the menu centered to reticle position at some point after startup then have the menu snap centered to the reticle if the reticle leaves the menu area.
+                //Consider how the Subnautica background would be affected.
                 GameObject mainMenu = __instance.transform.Find("Panel/MainMenu").gameObject;
-                if (mainMenu != null)
+                if (mainMenu)
                 {
                     mainMenu.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 385);
                     return;
@@ -99,7 +212,7 @@ namespace VREnhancements
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.LateUpdate))]
         class HR_LateUpdate_Patch
         {
-            //fixes the reticle distance being locked to the interaction distance
+            //fixes the reticle distance being locked to the interaction distance after interaction. eg Entering Seamoth
             static bool Prefix(HandReticle __instance)
             {
                 if (Player.main)
@@ -115,6 +228,7 @@ namespace VREnhancements
                     {
                         __instance.SetTargetDistance(AdditionalVROptions.HUD_Distance);
                     }
+                    //TODO: Check how the drone camera is affected. Don't think the drone camera has reticle components like the cyclops cam
                 }
                 return true;
             }

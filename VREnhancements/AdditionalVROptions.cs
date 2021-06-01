@@ -35,7 +35,7 @@ namespace VREnhancements
                 {
                     VROptions.groundMoveScale = v / 100f;
                 });
-                __instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleYPos, 20, 75, 50, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleYPos, 20, 75, 60, delegate (float v)
                 {
                     subtitleYPos = v;
                     UIElementsFixes.SetSubtitleHeight(subtitleYPos);
@@ -54,23 +54,23 @@ namespace VREnhancements
                 {
                     DynamicHUD = v;
                     if(!DynamicHUD)
-                        VRHUD.UpdateHUDOpacity(HUD_Alpha);
+                        UIElementsFixes.UpdateHUDOpacity(HUD_Alpha);
 
                 });
                 __instance.AddSliderOption(generalTabIndex, "HUD Opacity", HUD_Alpha * 100f, 20, 100, 100, delegate (float v)
                 {
                     HUD_Alpha = v / 100f;
-                    VRHUD.UpdateHUDOpacity(HUD_Alpha);
+                    UIElementsFixes.UpdateHUDOpacity(HUD_Alpha);
                 });
                 __instance.AddSliderOption(generalTabIndex, "HUD Distance", HUD_Distance / 0.5f, 2, 4, 3, delegate (float v)
                 {
                     HUD_Distance = v * 0.5f;
-                    VRHUD.UpdateHUDDistance(HUD_Distance);
+                    UIElementsFixes.UpdateHUDDistance(HUD_Distance);
                 });
                 __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 1, 4, 2, delegate (float v)
                 {
                     HUD_Scale = v * 0.5f;
-                    VRHUD.UpdateHUDScale(HUD_Scale);
+                    UIElementsFixes.UpdateHUDScale(HUD_Scale);
                 });
             }
 
