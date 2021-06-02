@@ -116,6 +116,12 @@ namespace VREnhancements
         {
             static void Postfix(uGUI_SceneHUD __instance)
             {
+                if(uGUI_CameraDrone.main.content.activeInHierarchy || uGUI_CameraCyclops.main.content.activeInHierarchy)
+                {
+                    UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
+                    return;
+                }
+
                 if (AdditionalVROptions.DynamicHUD && MainCamera.camera)
                 {
                     //fades the hud in based on the angle that the player is looking in. Straight up is 270 and forward is 360/0
