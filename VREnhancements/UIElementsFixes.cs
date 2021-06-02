@@ -79,18 +79,40 @@ namespace VREnhancements
                 }
             }
         }
-        [HarmonyPatch(typeof(uGUI_MainMenu), nameof(uGUI_MainMenu.Awake))]
-        class MM_Awake_Patch
+        [HarmonyPatch(typeof(uGUI_MainMenu), nameof(uGUI_MainMenu.Update))]
+        class MM_Update_Patch
         {
+            static float menuDistance = 24;
+            static float menuHeight = 1.3f;
+            static float menuScale = 2.2f;
             static void Postfix(uGUI_MainMenu __instance)
             {
-                //shift the main menu up a little. Fix this. Possibly make the menu track the players head with a delay.
-                GameObject mainMenu = __instance.transform.Find("Panel").Find("MainMenu").gameObject;
-                if (mainMenu != null)
-                {
-                    mainMenu.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 385);
+
+                if (uGUI_MainMenu.main.transform.position.x == menuDistance)
                     return;
+                uGUI_MainMenu.main.transform.position = new Vector3(menuDistance, uGUI_MainMenu.main.transform.position.y, uGUI_MainMenu.main.transform.position.z);
+                GameObject mainMenuPanel = __instance.transform.Find("Panel").gameObject;
+                if (mainMenuPanel)
+                {
+                    mainMenuPanel.transform.position = new Vector3(mainMenuPanel.transform.position.x, menuHeight, mainMenuPanel.transform.position.z);
+                    mainMenuPanel.transform.localScale = Vector3.one * menuScale;
                 }
+
+            }
+        }
+        [HarmonyPatch(typeof(SetRotationInVr), nameof(SetRotationInVr.Update))]
+        class SetRotVR_Start_Patch
+        {
+            static void Postfix(SetRotationInVr __instance)
+            {
+
+                GameObject subnauticaLogo = __instance.transform.Find("subnautica_logo(Clone)").gameObject;
+                if (subnauticaLogo)
+                {
+                    subnauticaLogo.transform.position = new Vector3(subnauticaLogo.transform.position.x, 2.2f, 4f);
+                    subnauticaLogo.transform.localScale = Vector3.one * 0.1f;
+                }
+
             }
         }
 
