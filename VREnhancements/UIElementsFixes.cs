@@ -17,6 +17,11 @@ namespace VREnhancements
         static float CameraHUDScaleFactor = 0.6f;        
         private static List<GameObject> DynamicHUDElements = new List<GameObject>();
         public static uGUI_SceneHUD sceneHUD;
+        
+        static Transform barsPanelTransform;
+        static Transform quickSlotsTransform;
+        static Transform compassTransform;
+        static Transform powerIndicatorTransform;
 
         //Add an element by name to the HUD Elements List.
         public static bool AddHUDElement(string name)
@@ -97,8 +102,27 @@ namespace VREnhancements
                 sceneHUD = __instance;//keep a reference to HUD
                 //add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
                 sceneHUD.gameObject.AddComponent<CanvasGroup>();
+                barsPanelTransform = __instance.transform.Find("Content/BarsPanel");
+                quickSlotsTransform = __instance.transform.Find("Content/QuickSlots");
+                compassTransform = __instance.transform.Find("Content/DepthCompass");
+                powerIndicatorTransform = __instance.transform.Find("Content/PowerIndicator");
             }
         }
+        /*
+        // This makes the quickslots vertical but the icon backgrounds will need to be disabled if I ever use this.
+        [HarmonyPatch(typeof(uGUI_QuickSlots), nameof(uGUI_QuickSlots.GetPosition))]
+        class uGUI_QuickSlots_GetPosition_Patch
+        {
+            static void Postfix(uGUI_QuickSlots __instance, ref Vector2 __result, int slotID)
+            {
+                if (__result == Vector2.zero)
+                    return;
+                uGUI_ItemIcon[] icons = Traverse.Create(__instance).Field("icons").GetValue<uGUI_ItemIcon[]>();
+                float num = 70;
+                __result =  new Vector2(0f, -0.5f * (float)(icons.Length - 1) * num + (float)slotID * num);
+            }
+        }
+        */
 
 
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.Start))]
@@ -134,6 +158,11 @@ namespace VREnhancements
                     else
                         UpdateHUDOpacity(0);
                 }
+                //TODO: Find a better way to do this
+                barsPanelTransform.rotation = Quaternion.LookRotation(barsPanelTransform.position);//LookRotatation(PositionOfObjectToRotate - lookatTargetPosition) MainCamera (UI) is always at (0,0,0);
+                quickSlotsTransform.rotation = Quaternion.LookRotation(quickSlotsTransform.position);
+                compassTransform.rotation = Quaternion.LookRotation(compassTransform.position);
+                powerIndicatorTransform.rotation = Quaternion.LookRotation(powerIndicatorTransform.position);
             }
         }
         public static void SetSubtitleHeight(float percentage)
