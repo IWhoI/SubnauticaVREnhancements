@@ -32,6 +32,7 @@ namespace VREnhancements
         public static void UpdateHUDOpacity(float alpha)
         {
             //using the DynamicHUDElements list to set the alpha of elements that are not affected by the HUD CanvasGroup. eg Sunbeam Timer
+            //TODO: Check if there is any need for the HUDElements list anymore since it seems like only the Sunbeam Timer might be an exception after using the CavasGroup.
             foreach (GameObject element in DynamicHUDElements)
             {
                 if (element)
@@ -114,8 +115,11 @@ namespace VREnhancements
         [HarmonyPatch(typeof(uGUI_SceneHUD), nameof(uGUI_SceneHUD.Update))]
         class SceneHUD_Update_Patch
         {
+            static float fadeInStart = 30;
+            static float fadeRange = 15;
             static void Postfix(uGUI_SceneHUD __instance)
             {
+                //don't use DynamicHUD if using cameras.
                 if(uGUI_CameraDrone.main.content.activeInHierarchy || uGUI_CameraCyclops.main.content.activeInHierarchy)
                 {
                     UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
@@ -124,15 +128,14 @@ namespace VREnhancements
 
                 if (AdditionalVROptions.DynamicHUD && MainCamera.camera)
                 {
-                    //fades the hud in based on the angle that the player is looking in. Straight up is 270 and forward is 360/0
+                    //fades the hud in based on the view pitch. Forward is 360/0 degrees and straight down is 90 degrees.
                     if (MainCamera.camera.transform.localEulerAngles.x < 180)
-                        UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - 30) / 15, 0, 1) * AdditionalVROptions.HUD_Alpha);
+                        UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - fadeInStart) / fadeRange, 0, 1) * AdditionalVROptions.HUD_Alpha);
                     else
                         UpdateHUDOpacity(0);
                 }
             }
         }
-        //TODO: I think there might be a better way to do this than setting the oy value. See SetSubtitleScale.
         public static void SetSubtitleHeight(float percentage)
         {
             Subtitles.main.popup.oy = GraphicsUtil.GetScreenSize().y * percentage / 100;
@@ -284,6 +287,7 @@ namespace VREnhancements
             {
                 VROptions.gazeBasedCursor = actualGazedBasedCursor;
                 //Fix the problem with the cursor rendering behind UI elements.
+                //TODO: Check if this is the best way to fix this. The cursor still goes invisible if you click off the canvas
                 Canvas cursorCanvas = __instance._cursor.GetComponentInChildren<Graphic>().canvas;
                 RaycastResult lastRaycastResult = Traverse.Create(__instance).Field("lastRaycastResult").GetValue<RaycastResult>();
                 if (cursorCanvas && lastRaycastResult.isValid)
