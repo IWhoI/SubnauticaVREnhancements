@@ -3,9 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.XR;
-using UnityEngine.PostProcessing;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace VREnhancements
 {
@@ -139,8 +137,8 @@ namespace VREnhancements
         [HarmonyPatch(typeof(uGUI_SceneHUD), nameof(uGUI_SceneHUD.Update))]
         class SceneHUD_Update_Patch
         {
-            static float fadeInStart = 30;
-            static float fadeRange = 15;
+            static float fadeInStart = 25;
+            static float fadeRange = 10;//max alpha at start+range degrees
             static void Postfix(uGUI_SceneHUD __instance)
             {
                 //don't use DynamicHUD if using cameras.
