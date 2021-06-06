@@ -8,82 +8,73 @@ namespace VREnhancements
     class AdditionalVROptions
     {
         //TODO: These should probably be private with public getters
-        public static int generalTabIndex = 0;
         public static bool DynamicHUD = false;
-        public static float subtitleYPos = 40;
+        public static float subtitleYPos = 40;//screen percentage. consider renaming
         public static float subtitleScale = 1;
-        public static float PDA_Distance = 0.28f;
+        public static float PDA_Distance = 0.4f;
         public static float HUD_Alpha = 1;
         public static float HUD_Distance = 1;
         public static float HUD_Scale = 1;
+        static int VRETab;
         
-        [HarmonyPatch(typeof(uGUI_OptionsPanel), nameof(uGUI_OptionsPanel.AddGeneralTab))]
+        [HarmonyPatch(typeof(uGUI_OptionsPanel), nameof(uGUI_OptionsPanel.AddTabs))]
         class GeneralTab_VROptionsPatch
         {
             //TODO: Create a new tab instead of using general for all the additional VR options and if possible move existing VR to the same tab
             static void Postfix(uGUI_OptionsPanel __instance)
             {
-                __instance.AddHeading(generalTabIndex, "Additional VR Options");//add new heading under the General Tab
-                __instance.AddToggleOption(generalTabIndex, "Enable VR Animations", GameOptions.enableVrAnimations, delegate (bool v)
+                VRETab = __instance.AddTab("More VR Options");
+                __instance.AddHeading(VRETab, "General Options");
+                __instance.AddToggleOption(VRETab, "Enable VR Animations", GameOptions.enableVrAnimations, delegate (bool v)
                 {
                     GameOptions.enableVrAnimations = v;
                     //playerAnimator vr_active is normally set in the Start function of Player so we need to update it if option changed during gameplay
                     if (Player.main != null)
                         Player.main.playerAnimator.SetBool("vr_active", !v);
                 });                
-                __instance.AddSliderOption(generalTabIndex, "Walk Speed(Default: 60%)", VROptions.groundMoveScale * 100, 50, 100, 60, delegate (float v)
+                __instance.AddSliderOption(VRETab, "Walk Speed(Default: 60%)", VROptions.groundMoveScale * 100, 50, 100, 60, delegate (float v)
                 {
                     VROptions.groundMoveScale = v / 100f;
                 });
-                __instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleYPos, 20, 75, 60, delegate (float v)
+                __instance.AddHeading(VRETab, "User Interface Options");
+                __instance.AddSliderOption(VRETab, "Subtitle Height", subtitleYPos, 20, 75, 60, delegate (float v)
                 {
                     subtitleYPos = v;
                     UIElementsFixes.SetSubtitleHeight(subtitleYPos);
                 });
-                __instance.AddSliderOption(generalTabIndex, "Subtitle Scale", subtitleScale * 100, 50, 150, 100, delegate (float v)
+                __instance.AddSliderOption(VRETab, "Subtitle Scale", subtitleScale * 100, 50, 150, 100, delegate (float v)
                 {
                     subtitleScale = v / 100;
                     UIElementsFixes.SetSubtitleScale(subtitleScale);
                 });
-                __instance.AddSliderOption(generalTabIndex, "PDA Distance", PDA_Distance * 100f, 25, 40, 40, delegate (float v)
+                __instance.AddSliderOption(VRETab, "PDA Distance", PDA_Distance * 100f, 25, 40, 40, delegate (float v)
                 {
                     PDA_Distance = v / 100f;
                 });
-                __instance.AddHeading(generalTabIndex, "VR HUD Options");//add new heading under the General Tab
-                __instance.AddToggleOption(generalTabIndex, "Dynamic HUD", DynamicHUD, delegate (bool v)
+                __instance.AddToggleOption(VRETab, "Dynamic HUD", DynamicHUD, delegate (bool v)
                 {
                     DynamicHUD = v;
                     if(!DynamicHUD)
                         UIElementsFixes.UpdateHUDOpacity(HUD_Alpha);
 
                 });
-                __instance.AddSliderOption(generalTabIndex, "HUD Opacity", HUD_Alpha * 100f, 20, 100, 100, delegate (float v)
+                __instance.AddSliderOption(VRETab, "HUD Opacity", HUD_Alpha * 100f, 20, 100, 100, delegate (float v)
                 {
                     HUD_Alpha = v / 100f;
                     UIElementsFixes.UpdateHUDOpacity(HUD_Alpha);
                 });
-                __instance.AddSliderOption(generalTabIndex, "HUD Distance", HUD_Distance / 0.5f, 2, 4, 3, delegate (float v)
+                __instance.AddSliderOption(VRETab, "HUD Distance", HUD_Distance / 0.5f, 2, 4, 3, delegate (float v)
                 {
                     HUD_Distance = v * 0.5f;
                     UIElementsFixes.UpdateHUDDistance(HUD_Distance);
                 });
-                __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 1, 4, 2, delegate (float v)
+                __instance.AddSliderOption(VRETab, "HUD Scale", HUD_Scale / 0.5f, 1, 4, 2, delegate (float v)
                 {
                     HUD_Scale = v * 0.5f;
                     UIElementsFixes.UpdateHUDScale(HUD_Scale);
                 });
             }
 
-        }
-        [HarmonyPatch(typeof(uGUI_TabbedControlsPanel), nameof(uGUI_TabbedControlsPanel.AddTab))]
-        class AddTab_Patch
-        {
-            static void Postfix(int __result, string label)
-            {
-                //get the tabIndex of the general tab to be able to use it in  AddGeneralTab_Postfix
-                if (label.Equals("General"))
-                    generalTabIndex = __result;
-            }
         }
 
         [HarmonyPatch(typeof(IngameMenu), nameof(IngameMenu.Awake))]

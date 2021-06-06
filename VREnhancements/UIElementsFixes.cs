@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.XR;
 using System.Collections.Generic;
+using System.Collections;
 
 namespace VREnhancements
 {
@@ -12,7 +13,7 @@ namespace VREnhancements
         //TODO: Alot of this is messy and could probably be done better.
         static RectTransform CameraCyclopsHUD;
         static RectTransform CameraDroneHUD;
-        static float CameraHUDScaleFactor = 0.6f;        
+        static float CameraHUDScaleFactor = 0.75f;        
         private static List<GameObject> DynamicHUDElements = new List<GameObject>();
         public static uGUI_SceneHUD sceneHUD;
         
@@ -20,6 +21,8 @@ namespace VREnhancements
         static Transform quickSlotsTransform;
         static Transform compassTransform;
         static Transform powerIndicatorTransform;
+        static Transform seamothHUDTransform;
+        static Transform exosuitHUDTransform;
 
         //Add an element by name to the HUD Elements List.
         public static bool AddHUDElement(string name)
@@ -79,8 +82,22 @@ namespace VREnhancements
             UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             UpdateHUDScale(AdditionalVROptions.HUD_Scale);
         }
-
-
+        [HarmonyPatch(typeof(Seaglide), nameof(Seaglide.OnDraw))]
+        class Seaglide_OnDraw_Patch
+        {
+            static void Postfix(Seaglide __instance)
+            {
+                quickSlotsTransform.GetComponent<UIFader>().Fade(0, 1);
+            }
+        }
+        [HarmonyPatch(typeof(Seaglide), nameof(Seaglide.OnHolster))]
+        class Seaglide_OnHolster_Patch
+        {
+            static void Postfix(Seaglide __instance)
+            {
+                quickSlotsTransform.GetComponent<UIFader>().Fade(AdditionalVROptions.HUD_Alpha, 1);
+            }
+        }
         [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.End))]
         class SceneLoading_End_Patch
         {
@@ -104,6 +121,17 @@ namespace VREnhancements
                 quickSlotsTransform = __instance.transform.Find("Content/QuickSlots");
                 compassTransform = __instance.transform.Find("Content/DepthCompass");
                 powerIndicatorTransform = __instance.transform.Find("Content/PowerIndicator");
+                seamothHUDTransform = __instance.transform.Find("Content/Seamoth");
+                exosuitHUDTransform = __instance.transform.Find("Content/Exosuit");
+            }
+        }
+        [HarmonyPatch(typeof(uGUI_SceneHUD), nameof(uGUI_SceneHUD.UpdateElements))]
+        class SceneHUD_UpdateElements_Patch
+        {
+            static void Postfix(uGUI_SceneHUD __instance)
+            {
+                if(barsPanelTransform)    
+                    barsPanelTransform.localPosition = new Vector3(-300, -260, 0);
             }
         }
         /*
@@ -121,7 +149,15 @@ namespace VREnhancements
             }
         }
         */
-
+        [HarmonyPatch(typeof(uGUI_QuickSlots), nameof(uGUI_QuickSlots.Init))]
+        class uGUI_QuickSlots_Init_Patch
+        {
+            static void Postfix(uGUI_QuickSlots __instance)
+            {
+                if (!__instance.transform.GetComponent<UIFader>())
+                    __instance.gameObject.AddComponent<UIFader>();
+            }
+        }
 
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.Start))]
         class HandReticle_Start_Patch
@@ -161,6 +197,8 @@ namespace VREnhancements
                 quickSlotsTransform.rotation = Quaternion.LookRotation(quickSlotsTransform.position);
                 compassTransform.rotation = Quaternion.LookRotation(compassTransform.position);
                 powerIndicatorTransform.rotation = Quaternion.LookRotation(powerIndicatorTransform.position);
+                seamothHUDTransform.rotation = Quaternion.LookRotation(seamothHUDTransform.position);
+                exosuitHUDTransform.rotation = Quaternion.LookRotation(exosuitHUDTransform.position);
             }
         }
         public static void SetSubtitleHeight(float percentage)
@@ -314,7 +352,7 @@ namespace VREnhancements
             {
                 VROptions.gazeBasedCursor = actualGazedBasedCursor;
                 //Fix the problem with the cursor rendering behind UI elements.
-                //TODO: Check if this is the best way to fix this. The cursor still goes invisible if you click off the canvas
+                //TODO: Check if this is the best way to fix this. The cursor still goes invisible if you click off the canvas. Check lastgroup variable in FPSInputModule
                 Canvas cursorCanvas = __instance._cursor.GetComponentInChildren<Graphic>().canvas;
                 RaycastResult lastRaycastResult = Traverse.Create(__instance).Field("lastRaycastResult").GetValue<RaycastResult>();
                 if (cursorCanvas && lastRaycastResult.isValid)
