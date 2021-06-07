@@ -4,18 +4,17 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.XR;
 using System.Collections.Generic;
-using System.Collections;
 
 namespace VREnhancements
 {
     class UIElementsFixes
     {
-        //TODO: Alot of this is messy and could probably be done better.
         static RectTransform CameraCyclopsHUD;
         static RectTransform CameraDroneHUD;
         static float CameraHUDScaleFactor = 0.75f;        
         private static List<GameObject> DynamicHUDElements = new List<GameObject>();
-        public static uGUI_SceneHUD sceneHUD;
+        static uGUI_SceneHUD sceneHUD;
+        static bool seaglideActive = false;
         
         static Transform barsPanelTransform;
         static Transform quickSlotsTransform;
@@ -53,10 +52,7 @@ namespace VREnhancements
                 sceneHUD.GetComponent<CanvasGroup>().alpha = alpha;
             CanvasGroup HandReticleCG = HandReticle.main.GetComponent<CanvasGroup>();
             if (HandReticleCG)
-            {
-                HandReticleCG.ignoreParentGroups = true;//not sure if this will cause issues when changes are made to the ScreenCanvas CanvasGroup
                 HandReticleCG.alpha = 1;
-            }
 
         }
         public static void UpdateHUDDistance(float distance)
@@ -87,7 +83,7 @@ namespace VREnhancements
         {
             static void Postfix(Seaglide __instance)
             {
-                quickSlotsTransform.GetComponent<UIFader>().Fade(0, 1);
+                seaglideActive = true;
             }
         }
         [HarmonyPatch(typeof(Seaglide), nameof(Seaglide.OnHolster))]
@@ -95,9 +91,10 @@ namespace VREnhancements
         {
             static void Postfix(Seaglide __instance)
             {
-                quickSlotsTransform.GetComponent<UIFader>().Fade(AdditionalVROptions.HUD_Alpha, 1);
+                seaglideActive = false;
             }
         }
+
         [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.End))]
         class SceneLoading_End_Patch
         {
@@ -114,9 +111,8 @@ namespace VREnhancements
         {
             static void Postfix(uGUI_SceneHUD __instance)
             {
-                sceneHUD = __instance;//keep a reference to HUD
-                //add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
-                sceneHUD.gameObject.AddComponent<CanvasGroup>();
+                sceneHUD = __instance;
+                sceneHUD.gameObject.AddComponent<CanvasGroup>();//add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
                 barsPanelTransform = __instance.transform.Find("Content/BarsPanel");
                 quickSlotsTransform = __instance.transform.Find("Content/QuickSlots");
                 compassTransform = __instance.transform.Find("Content/DepthCompass");
@@ -134,21 +130,7 @@ namespace VREnhancements
                     barsPanelTransform.localPosition = new Vector3(-300, -260, 0);
             }
         }
-        /*
-        // This makes the quickslots vertical but the icon backgrounds will need to be disabled if I ever use this.
-        [HarmonyPatch(typeof(uGUI_QuickSlots), nameof(uGUI_QuickSlots.GetPosition))]
-        class uGUI_QuickSlots_GetPosition_Patch
-        {
-            static void Postfix(uGUI_QuickSlots __instance, ref Vector2 __result, int slotID)
-            {
-                if (__result == Vector2.zero)
-                    return;
-                uGUI_ItemIcon[] icons = Traverse.Create(__instance).Field("icons").GetValue<uGUI_ItemIcon[]>();
-                float num = 70;
-                __result =  new Vector2(0f, -0.5f * (float)(icons.Length - 1) * num + (float)slotID * num);
-            }
-        }
-        */
+
         [HarmonyPatch(typeof(uGUI_QuickSlots), nameof(uGUI_QuickSlots.Init))]
         class uGUI_QuickSlots_Init_Patch
         {
@@ -159,6 +141,20 @@ namespace VREnhancements
             }
         }
 
+        [HarmonyPatch(typeof(QuickSlots), nameof(QuickSlots.NotifySelect))]
+        class QuickSlots_NotifySelect_Patch
+        {
+            static void Postfix(QuickSlots __instance)
+            {
+                UIFader qsFader = quickSlotsTransform.GetComponent<UIFader>();
+                qsFader.Fade(AdditionalVROptions.HUD_Alpha, 0, 0, true);//make quickslot visible as soon as the slot changes
+                if(!seaglideActive && AdditionalVROptions.DynamicHUD)
+                    qsFader.Fade(0, 1, 2);
+                else if(seaglideActive)
+                    qsFader.Fade(0, 1, 0, true);//fade without delay if seaglide is active.
+            }
+        }
+
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.Start))]
         class HandReticle_Start_Patch
         {
@@ -166,7 +162,10 @@ namespace VREnhancements
             {
                 //add CanvasGroup to the HandReticle to be able to override the HUD CanvasGroup alpha settings to keep the Reticle always opaque.
                 if (HandReticle.main)
-                    HandReticle.main.gameObject.AddComponent<CanvasGroup>();
+                {
+                    HandReticle.main.gameObject.AddComponent<CanvasGroup>().ignoreParentGroups = true;//not sure if this will cause issues when changes are made to the ScreenCanvas CanvasGroup;
+                }
+                   
             }
         }
 
@@ -177,12 +176,9 @@ namespace VREnhancements
             static float fadeRange = 10;//max alpha at start+range degrees
             static void Postfix(uGUI_SceneHUD __instance)
             {
-                //don't use DynamicHUD if using cameras.
+                //don't change the HUD if using cameras.
                 if(uGUI_CameraDrone.main.content.activeInHierarchy || uGUI_CameraCyclops.main.content.activeInHierarchy)
-                {
-                    UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
                     return;
-                }
 
                 if (AdditionalVROptions.DynamicHUD && MainCamera.camera)
                 {
@@ -192,7 +188,7 @@ namespace VREnhancements
                     else
                         UpdateHUDOpacity(0);
                 }
-                //TODO: Find a better way to do this
+                //TODO: This was just a test and needs to be removed from update and done in a better way.
                 barsPanelTransform.rotation = Quaternion.LookRotation(barsPanelTransform.position);//LookRotatation(PositionOfObjectToRotate - lookatTargetPosition) MainCamera (UI) is always at (0,0,0);
                 quickSlotsTransform.rotation = Quaternion.LookRotation(quickSlotsTransform.position);
                 compassTransform.rotation = Quaternion.LookRotation(compassTransform.position);
@@ -250,6 +246,15 @@ namespace VREnhancements
                 }
             }
         }
+        [HarmonyPatch(typeof(uGUI_CameraDrone), nameof(uGUI_CameraDrone.OnEnable))]
+        class CameraDrone_OnEnable_Patch
+        {
+            //make sure the camera HUD is visible
+            static void Postfix(uGUI_CameraDrone __instance)
+            {
+                UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
+            }
+        }
 
         [HarmonyPatch(typeof(uGUI_CameraCyclops), nameof(uGUI_CameraCyclops.Awake))]
         class CameraCyclops_Awake_Patch
@@ -263,6 +268,16 @@ namespace VREnhancements
                     CameraCyclopsHUD.localScale = new Vector3(CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, 1f);
                 }
 
+            }
+        }
+
+        [HarmonyPatch(typeof(uGUI_CameraCyclops), nameof(uGUI_CameraCyclops.OnEnable))]
+        class CameraCyclops_OnEnable_Patch
+        {
+            //make sure the camera HUD is visible
+            static void Postfix(uGUI_CameraCyclops __instance)
+            {
+                UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             }
         }
 
@@ -286,7 +301,7 @@ namespace VREnhancements
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.LateUpdate))]
         class HR_LateUpdate_Patch
         {
-            //fixes the reticle distance being locked to the interaction distance after interaction. eg Entering Seamoth
+            //fixes the reticle distance being locked to the interaction distance after interaction. eg Entering Seamoth and piloting Cyclops
             static bool Prefix(HandReticle __instance)
             {
                 if (Player.main)
@@ -294,6 +309,7 @@ namespace VREnhancements
                     Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float reticleDistance, null);
                     SubRoot currSub = Player.main.GetCurrentSub();
                     //if piloting the cyclops and not using cyclops cameras
+                    //TODO: find a way to use the raycast distance for the ui elements instead of the fixed value of 1.55
                     if (Player.main.isPiloting && currSub && currSub.isCyclops && !CameraCyclopsHUD.gameObject.activeInHierarchy)
                     {
                         __instance.SetTargetDistance(reticleDistance > 1.55f ? 1.55f : reticleDistance);
@@ -302,7 +318,6 @@ namespace VREnhancements
                     {
                         __instance.SetTargetDistance(AdditionalVROptions.HUD_Distance);
                     }
-                    //TODO: Check how the drone camera is affected. Don't think the drone camera has reticle components like the cyclops cam
                 }
                 return true;
             }

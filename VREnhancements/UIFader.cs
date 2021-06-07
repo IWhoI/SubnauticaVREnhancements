@@ -6,36 +6,46 @@ namespace VREnhancements
 {
     class UIFader : MonoBehaviour
     {
-        bool fading = false;
         CanvasGroup cg;
         Coroutine fadeCR;
-        
+        bool fading = false;
         void Start()
         {
             if (!this.gameObject.GetComponent<CanvasGroup>())
                cg = this.gameObject.AddComponent<CanvasGroup>();
         }
-        public void Fade(float targetAlpha, float fadeSpeed = 1)
+        
+        public void Fade(float targetAlpha, float fadeSpeed = 1, float delaySeconds = 0, bool reset = false)
         {
-            //if already fading, stop the current fade before starting a new one.
-            if (fading)
+            ErrorMessage.AddMessage("ta: " + targetAlpha + " speed: " + fadeSpeed + " delay: " + delaySeconds + " reset: " + reset);
+            //if currently fading and reset true, stop current fade and start new fade
+            if (fadeCR != null && fading && reset)
+            {
                 StopCoroutine(fadeCR);
-            fadeCR = StartCoroutine(FadeCG(targetAlpha, fadeSpeed));
+                fadeCR = StartCoroutine(FadeCG(targetAlpha, fadeSpeed, delaySeconds));
+            }
+            else if (!fading)
+                fadeCR = StartCoroutine(FadeCG(targetAlpha, fadeSpeed, delaySeconds));
         }
-        IEnumerator FadeCG(float targetAlpha, float fadeSpeed)
+        IEnumerator FadeCG(float targetAlpha, float fadeSpeed, float seconds)
         {
             if (cg)
             {
+                fading = true;
+                if(seconds > 0)
+                    yield return new WaitForSeconds(seconds);
                 float newAlpha = cg.alpha;
-                while (newAlpha != targetAlpha)
-                {
-                    fading = true;
-                    newAlpha = Mathf.MoveTowards(newAlpha, targetAlpha, fadeSpeed * Time.deltaTime);
-                    cg.alpha = newAlpha;
-                    yield return null;
-                }
+                if (fadeSpeed <= 0)
+                    cg.alpha = targetAlpha;
+                else
+                    while (newAlpha != targetAlpha)
+                    {
+                        newAlpha = Mathf.MoveTowards(newAlpha, targetAlpha, fadeSpeed * Time.deltaTime);
+                        cg.alpha = newAlpha;
+                        yield return null;
+                    }
+                fading = false;
             }
-            fading = false;//fade completed
         }
     }
 }
