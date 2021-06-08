@@ -14,14 +14,14 @@ namespace VREnhancements
         static float CameraHUDScaleFactor = 0.75f;        
         private static List<GameObject> DynamicHUDElements = new List<GameObject>();
         static uGUI_SceneHUD sceneHUD;
-        static bool seaglideActive = false;
-        
-        static Transform barsPanelTransform;
-        static Transform quickSlotsTransform;
-        static Transform compassTransform;
-        static Transform powerIndicatorTransform;
-        static Transform seamothHUDTransform;
-        static Transform exosuitHUDTransform;
+        static bool seaglideEquipped = false;
+        static Transform barsPanel;
+        static Transform quickSlots;
+        static Transform compass;
+        static Transform powerIndicator;
+        static Transform seamothHUD;
+        static Transform exosuitHUD;
+        static Transform sunbeamCountdown;
 
         //Add an element by name to the HUD Elements List.
         public static bool AddHUDElement(string name)
@@ -36,24 +36,14 @@ namespace VREnhancements
         }
         public static void UpdateHUDOpacity(float alpha)
         {
-            //using the DynamicHUDElements list to set the alpha of elements that are not affected by the HUD CanvasGroup. eg Sunbeam Timer
-            //TODO: Check if there is any need for the HUDElements list anymore since it seems like only the Sunbeam Timer might be an exception after using the CavasGroup.
-            foreach (GameObject element in DynamicHUDElements)
-            {
-                if (element)
-                    foreach (CanvasRenderer renderer in element.GetComponentsInChildren<CanvasRenderer>())
-                    {
-                        //there has to be a better way to do this. This is to maintain the invisible Sunbeam background set in UIElementsFixes
-                        if (!(renderer.transform.parent.name == "SunbeamCountdown" && renderer.name == "Background"))
-                            renderer.SetAlpha(alpha);
-                    }
-            }
             if (sceneHUD.GetComponent<CanvasGroup>())
                 sceneHUD.GetComponent<CanvasGroup>().alpha = alpha;
-            CanvasGroup HandReticleCG = HandReticle.main.GetComponent<CanvasGroup>();
-            if (HandReticleCG)
-                HandReticleCG.alpha = 1;
-
+            //sunbeam timer is not a child of the hud so alpha has to be set separately.
+            if (sunbeamCountdown.GetComponent<CanvasGroup>())
+                sunbeamCountdown.GetComponent<CanvasGroup>().alpha = alpha;
+           //to keep the reticle always fully visible
+            if (HandReticle.main.GetComponent<CanvasGroup>())
+                HandReticle.main.GetComponent<CanvasGroup>().alpha = 1;
         }
         public static void UpdateHUDDistance(float distance)
         {
@@ -69,21 +59,34 @@ namespace VREnhancements
         {
             if (sceneHUD)
                 sceneHUD.GetComponent<RectTransform>().localScale = Vector3.one * scale;
+            //TODO: Consider if only the HUD should be scaled or the whole screen canvas
+            /* 
+            if(sunbeamCountdown)
+                sunbeamCountdown.GetComponent<RectTransform>().localScale = Vector3.one * scale;*/
         }
 
         static void InitHUD()
         {
+            sceneHUD.gameObject.AddComponent<CanvasGroup>();//add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
             AddHUDElement("SunbeamCountdown");
             UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             UpdateHUDScale(AdditionalVROptions.HUD_Scale);
+            if (!quickSlots.GetComponent<UIFader>())
+            {
+                UIFader qsFader = quickSlots.gameObject.AddComponent<UIFader>();
+                if(qsFader)
+                    qsFader.Fade(0,1,0,true);
+            }
+            if (barsPanel)
+                barsPanel.localPosition = new Vector3(-300, -260, 0);
         }
         [HarmonyPatch(typeof(Seaglide), nameof(Seaglide.OnDraw))]
         class Seaglide_OnDraw_Patch
         {
             static void Postfix(Seaglide __instance)
             {
-                seaglideActive = true;
+                seaglideEquipped = true;
             }
         }
         [HarmonyPatch(typeof(Seaglide), nameof(Seaglide.OnHolster))]
@@ -91,16 +94,17 @@ namespace VREnhancements
         {
             static void Postfix(Seaglide __instance)
             {
-                seaglideActive = false;
+                seaglideEquipped = false;
             }
         }
 
-        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.End))]
-        class SceneLoading_End_Patch
+        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.Begin))]
+        class SceneLoading_Begin_Patch
         {
             static void Postfix(uGUI_SceneLoading __instance)
             {
-                //only update HUD parameters after loading to make sure AdditionalVROptions are loaded first. Might have a better way to do this.
+                //only update HUD parameters late to make sure AdditionalVROptions are loaded first.
+                //TODO: Find a better way to know when settings have been serialized after startup.
                 InitHUD();
             }
         }
@@ -112,32 +116,12 @@ namespace VREnhancements
             static void Postfix(uGUI_SceneHUD __instance)
             {
                 sceneHUD = __instance;
-                sceneHUD.gameObject.AddComponent<CanvasGroup>();//add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
-                barsPanelTransform = __instance.transform.Find("Content/BarsPanel");
-                quickSlotsTransform = __instance.transform.Find("Content/QuickSlots");
-                compassTransform = __instance.transform.Find("Content/DepthCompass");
-                powerIndicatorTransform = __instance.transform.Find("Content/PowerIndicator");
-                seamothHUDTransform = __instance.transform.Find("Content/Seamoth");
-                exosuitHUDTransform = __instance.transform.Find("Content/Exosuit");
-            }
-        }
-        [HarmonyPatch(typeof(uGUI_SceneHUD), nameof(uGUI_SceneHUD.UpdateElements))]
-        class SceneHUD_UpdateElements_Patch
-        {
-            static void Postfix(uGUI_SceneHUD __instance)
-            {
-                if(barsPanelTransform)    
-                    barsPanelTransform.localPosition = new Vector3(-300, -260, 0);
-            }
-        }
-
-        [HarmonyPatch(typeof(uGUI_QuickSlots), nameof(uGUI_QuickSlots.Init))]
-        class uGUI_QuickSlots_Init_Patch
-        {
-            static void Postfix(uGUI_QuickSlots __instance)
-            {
-                if (!__instance.transform.GetComponent<UIFader>())
-                    __instance.gameObject.AddComponent<UIFader>();
+                barsPanel = __instance.transform.Find("Content/BarsPanel");
+                quickSlots = __instance.transform.Find("Content/QuickSlots");
+                compass = __instance.transform.Find("Content/DepthCompass");
+                powerIndicator = __instance.transform.Find("Content/PowerIndicator");
+                seamothHUD = __instance.transform.Find("Content/Seamoth");
+                exosuitHUD = __instance.transform.Find("Content/Exosuit");
             }
         }
 
@@ -146,11 +130,11 @@ namespace VREnhancements
         {
             static void Postfix(QuickSlots __instance)
             {
-                UIFader qsFader = quickSlotsTransform.GetComponent<UIFader>();
-                qsFader.Fade(AdditionalVROptions.HUD_Alpha, 0, 0, true);//make quickslot visible as soon as the slot changes
-                if(!seaglideActive && AdditionalVROptions.DynamicHUD)
+                UIFader qsFader = quickSlots.GetComponent<UIFader>();
+                qsFader.Fade(AdditionalVROptions.HUD_Alpha, 0, 0, true);//make quickslot visible as soon as the slot changes. Using Fade to cancel any running fades.
+                if(!seaglideEquipped && AdditionalVROptions.DynamicHUD)
                     qsFader.Fade(0, 1, 2);
-                else if(seaglideActive)
+                else if(seaglideEquipped)
                     qsFader.Fade(0, 1, 0, true);//fade without delay if seaglide is active.
             }
         }
@@ -179,22 +163,22 @@ namespace VREnhancements
                 //don't change the HUD if using cameras.
                 if(uGUI_CameraDrone.main.content.activeInHierarchy || uGUI_CameraCyclops.main.content.activeInHierarchy)
                     return;
-
-                if (AdditionalVROptions.DynamicHUD && MainCamera.camera)
+                //TODO: only use dynamic hud for fading elements. create new option for look down for hud.
+                /*if (AdditionalVROptions.DynamicHUD && MainCamera.camera)
                 {
                     //fades the hud in based on the view pitch. Forward is 360/0 degrees and straight down is 90 degrees.
                     if (MainCamera.camera.transform.localEulerAngles.x < 180)
                         UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - fadeInStart) / fadeRange, 0, 1) * AdditionalVROptions.HUD_Alpha);
                     else
                         UpdateHUDOpacity(0);
-                }
+                }*/
                 //TODO: This was just a test and needs to be removed from update and done in a better way.
-                barsPanelTransform.rotation = Quaternion.LookRotation(barsPanelTransform.position);//LookRotatation(PositionOfObjectToRotate - lookatTargetPosition) MainCamera (UI) is always at (0,0,0);
-                quickSlotsTransform.rotation = Quaternion.LookRotation(quickSlotsTransform.position);
-                compassTransform.rotation = Quaternion.LookRotation(compassTransform.position);
-                powerIndicatorTransform.rotation = Quaternion.LookRotation(powerIndicatorTransform.position);
-                seamothHUDTransform.rotation = Quaternion.LookRotation(seamothHUDTransform.position);
-                exosuitHUDTransform.rotation = Quaternion.LookRotation(exosuitHUDTransform.position);
+                barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);//LookRotatation(PositionOfObjectToRotate - lookatTargetPosition) MainCamera (UI) is always at (0,0,0);
+                quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
+                compass.rotation = Quaternion.LookRotation(compass.position);
+                powerIndicator.rotation = Quaternion.LookRotation(powerIndicator.position);
+                seamothHUD.rotation = Quaternion.LookRotation(seamothHUD.position);
+                exosuitHUD.rotation = Quaternion.LookRotation(exosuitHUD.position);
             }
         }
         public static void SetSubtitleHeight(float percentage)
@@ -224,11 +208,13 @@ namespace VREnhancements
             //TODO: consider removing the background component completely so the workaround in SetHUDOpacity will be unnescessary.
             public static void Postfix(uGUI_SunbeamCountdown __instance)
             {
+                sunbeamCountdown = __instance.transform;
                 RectTransform SunbeamRect = __instance.countdownHolder.GetComponent<RectTransform>();
                 SunbeamRect.anchorMax = SunbeamRect.anchorMin = SunbeamRect.pivot = new Vector2(0.5f, 0.5f);
                 SunbeamRect.anchoredPosition = new Vector2(0f, -275f);
                 SunbeamRect.localScale = Vector3.one * 0.75f;
-                __instance.transform.Find("Background").GetComponent<CanvasRenderer>().SetAlpha(0f);//hide background
+                __instance.transform.Find("Background").gameObject.SetActive(false);
+                __instance.gameObject.AddComponent<CanvasGroup>();
             }
 
         }

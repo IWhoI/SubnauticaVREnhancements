@@ -17,7 +17,6 @@ namespace VREnhancements
         
         public void Fade(float targetAlpha, float fadeSpeed = 1, float delaySeconds = 0, bool reset = false)
         {
-            ErrorMessage.AddMessage("ta: " + targetAlpha + " speed: " + fadeSpeed + " delay: " + delaySeconds + " reset: " + reset);
             //if currently fading and reset true, stop current fade and start new fade
             if (fadeCR != null && fading && reset)
             {

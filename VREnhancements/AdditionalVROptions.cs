@@ -29,7 +29,7 @@ namespace VREnhancements
                 {
                     GameOptions.enableVrAnimations = v;
                     //playerAnimator vr_active is normally set in the Start function of Player so we need to update it if option changed during gameplay
-                    if (Player.main != null)
+                    if (Player.main)
                         Player.main.playerAnimator.SetBool("vr_active", !v);
                 });                
                 __instance.AddSliderOption(VRETab, "Walk Speed(Default: 60%)", VROptions.groundMoveScale * 100, 50, 100, 60, delegate (float v)
@@ -84,7 +84,7 @@ namespace VREnhancements
             //code copied from the quit to desktop mod and modified
             static void Postfix(IngameMenu __instance)
             {
-                if (__instance != null && recenterVRButton == null)
+                if (__instance && recenterVRButton == null)
                 {
                     //Clone the quitToMainMenuButton and update it
                     Button menuButton = __instance.quitToMainMenuButton.transform.parent.GetChild(0).gameObject.GetComponent<Button>();
