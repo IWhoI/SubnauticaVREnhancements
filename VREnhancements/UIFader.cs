@@ -9,10 +9,24 @@ namespace VREnhancements
         CanvasGroup cg;
         Coroutine fadeCR;
         bool fading = false;
+        public bool autoFadeOut = false;
+        public float autoFadeDelay = 1;
+
         void Start()
         {
             if (!this.gameObject.GetComponent<CanvasGroup>())
                cg = this.gameObject.AddComponent<CanvasGroup>();
+        }
+
+        void Update()
+        {
+            if (fading)
+                return;
+            //if the element is visible and autofade is true then auto fade.
+            if(autoFadeOut && cg && cg.alpha > 0)
+            {
+                Fade(0, 1, autoFadeDelay, false);
+            }
         }
         
         public void Fade(float targetAlpha, float fadeSpeed = 1, float delaySeconds = 0, bool reset = false)

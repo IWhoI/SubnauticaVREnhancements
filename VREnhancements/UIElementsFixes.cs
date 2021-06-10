@@ -75,9 +75,10 @@ namespace VREnhancements
             if (!quickSlots.GetComponent<UIFader>())
             {
                 UIFader qsFader = quickSlots.gameObject.AddComponent<UIFader>();
-                if(qsFader)
-                    qsFader.Fade(0,1,0,true);
+                if (qsFader)
+                    qsFader.autoFadeOut = true;
             }
+                
             if (barsPanel)
                 barsPanel.localPosition = new Vector3(-300, -260, 0);
         }
@@ -135,7 +136,7 @@ namespace VREnhancements
                 if(!seaglideEquipped && AdditionalVROptions.DynamicHUD)
                     qsFader.Fade(0, 1, 2);
                 else if(seaglideEquipped)
-                    qsFader.Fade(0, 1, 0, true);//fade without delay if seaglide is active.
+                    qsFader.Fade(0, 1, 1, true);//fade with shorter delay if seaglide is active.
             }
         }
 
