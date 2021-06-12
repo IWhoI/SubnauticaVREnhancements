@@ -9,7 +9,7 @@ namespace VREnhancements
         CanvasGroup cg;
         Coroutine fadeCR;
         bool fading = false;
-        public bool autoFadeOut = false;
+        bool autoFadeOut = false;
         public float autoFadeDelay = 1;
 
         void Start()
@@ -28,8 +28,18 @@ namespace VREnhancements
                 Fade(0, 1, autoFadeDelay, false);
             }
         }
-        
-        public void Fade(float targetAlpha, float fadeSpeed = 1, float delaySeconds = 0, bool reset = false)
+
+        public float GetAlpha()
+        {
+            return cg.alpha;
+        }
+        public void SetAutoFade(bool enabled)
+        {
+            autoFadeOut = enabled;
+            if (!enabled)
+                Fade(AdditionalVROptions.HUD_Alpha, 0, 0, true);
+        }
+       public void Fade(float targetAlpha, float fadeSpeed = 1, float delaySeconds = 0, bool reset = false)
         {
             //if currently fading and reset true, stop current fade and start new fade
             if (fadeCR != null && fading && reset)

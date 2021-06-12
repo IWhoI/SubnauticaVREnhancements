@@ -3,16 +3,17 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using UnityEngine.XR;
+using UWE;
 using System.Collections.Generic;
 
 namespace VREnhancements
 {
     class UIElementsFixes
     {
+        
         static RectTransform CameraCyclopsHUD;
         static RectTransform CameraDroneHUD;
-        static float CameraHUDScaleFactor = 0.75f;        
-        private static List<GameObject> DynamicHUDElements = new List<GameObject>();
+        static float CameraHUDScaleFactor = 0.75f;
         static uGUI_SceneHUD sceneHUD;
         static bool seaglideEquipped = false;
         static Transform barsPanel;
@@ -22,28 +23,36 @@ namespace VREnhancements
         static Transform seamothHUD;
         static Transform exosuitHUD;
         static Transform sunbeamCountdown;
+        static bool fadeBarsPanel = true;
+        static float lastHealth = -1;
+        static float lastOxygen = -1;
+        static float lastFood = -1;
+        static float lastWater = -1;
 
-        //Add an element by name to the HUD Elements List.
-        public static bool AddHUDElement(string name)
+
+        public static void SetDynamicHUD(bool enabled)
         {
-            GameObject element = GameObject.Find(name);
-            if (element && !DynamicHUDElements.Contains(element))
+            //was planning on using a list for this but it's only ever going to be just these two elements
+            UIFader qsFader = quickSlots.gameObject.GetComponent<UIFader>();
+            UIFader barsFader = barsPanel.gameObject.GetComponent<UIFader>();
+            if (qsFader && barsFader)
             {
-                DynamicHUDElements.Add(element);
-                return true;
+                qsFader.SetAutoFade(enabled);
+                barsFader.SetAutoFade(enabled);
             }
-            return false;
         }
         public static void UpdateHUDOpacity(float alpha)
         {
-            if (sceneHUD.GetComponent<CanvasGroup>())
-                sceneHUD.GetComponent<CanvasGroup>().alpha = alpha;
-            //sunbeam timer is not a child of the hud so alpha has to be set separately.
-            if (sunbeamCountdown.GetComponent<CanvasGroup>())
-                sunbeamCountdown.GetComponent<CanvasGroup>().alpha = alpha;
-           //to keep the reticle always fully visible
-            if (HandReticle.main.GetComponent<CanvasGroup>())
-                HandReticle.main.GetComponent<CanvasGroup>().alpha = 1;
+            if(sceneHUD)
+            {
+                if (sceneHUD.GetComponent<CanvasGroup>())
+                    sceneHUD.GetComponent<CanvasGroup>().alpha = alpha;
+                if(sunbeamCountdown)
+                    sunbeamCountdown.Find("Background").GetComponent<CanvasRenderer>().SetAlpha(0f);//make sure the background remains hidden
+                //to keep the reticle always fully visible
+                if (HandReticle.main.GetComponent<CanvasGroup>())
+                    HandReticle.main.GetComponent<CanvasGroup>().alpha = 1;
+            }
         }
         public static void UpdateHUDDistance(float distance)
         {
@@ -53,6 +62,7 @@ namespace VREnhancements
                     new Vector3(sceneHUD.GetComponentInParent<Canvas>().transform.position.x,
                     sceneHUD.GetComponentInParent<Canvas>().transform.position.y,
                     distance);
+                //sceneHUD.transform.position = new Vector3(sceneHUD.transform.position.x,sceneHUD.transform.position.y,distance);
             }
         }
         public static void UpdateHUDScale(float scale)
@@ -60,15 +70,12 @@ namespace VREnhancements
             if (sceneHUD)
                 sceneHUD.GetComponent<RectTransform>().localScale = Vector3.one * scale;
             //TODO: Consider if only the HUD should be scaled or the whole screen canvas
-            /* 
-            if(sunbeamCountdown)
-                sunbeamCountdown.GetComponent<RectTransform>().localScale = Vector3.one * scale;*/
         }
 
-        static void InitHUD()
+        public static void InitHUD()
         {
+            //TODO: fix stuff like the death overlay and sleep overlay being too far back if huddistance is set back.
             sceneHUD.gameObject.AddComponent<CanvasGroup>();//add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
-            AddHUDElement("SunbeamCountdown");
             UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             UpdateHUDScale(AdditionalVROptions.HUD_Scale);
@@ -76,11 +83,22 @@ namespace VREnhancements
             {
                 UIFader qsFader = quickSlots.gameObject.AddComponent<UIFader>();
                 if (qsFader)
-                    qsFader.autoFadeOut = true;
+                    qsFader.SetAutoFade(AdditionalVROptions.DynamicHUD);
             }
-                
+            if (!barsPanel.GetComponent<UIFader>())
+            {
+                UIFader barsFader = barsPanel.gameObject.AddComponent<UIFader>();
+                if (barsFader)
+                {
+                    barsFader.SetAutoFade(AdditionalVROptions.DynamicHUD);
+                    barsFader.autoFadeDelay = 2;
+                }
+            }
             if (barsPanel)
                 barsPanel.localPosition = new Vector3(-300, -260, 0);
+            //fix certain components that are no longer blocking the entire fov when hud distance is further back
+            uGUI_PlayerDeath.main.blackOverlay.gameObject.GetComponent<RectTransform>().localScale = Vector3.one * 2;
+            uGUI_PlayerSleep.main.blackOverlay.gameObject.GetComponent<RectTransform>().localScale = Vector3.one * 2;
         }
         [HarmonyPatch(typeof(Seaglide), nameof(Seaglide.OnDraw))]
         class Seaglide_OnDraw_Patch
@@ -100,12 +118,12 @@ namespace VREnhancements
         }
 
         [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.Begin))]
-        class SceneLoading_Begin_Patch
+        class uGUI_Awake_Patch
         {
-            static void Postfix(uGUI_SceneLoading __instance)
+            static void Postfix()
             {
-                //only update HUD parameters late to make sure AdditionalVROptions are loaded first.
-                //TODO: Find a better way to know when settings have been serialized after startup.
+                //TODO: Figure out why the Screen Canvas distance gets reset to 1 when loading a save. 
+                //initializing hud settings at the start of loading a save to make sure it doesn't get reset to 1
                 InitHUD();
             }
         }
@@ -126,6 +144,53 @@ namespace VREnhancements
             }
         }
 
+        [HarmonyPatch(typeof(Player), nameof(Player.Update))]
+        class Player_Update_Patch
+        {
+            static void Postfix(Player __instance)
+            {
+                UIFader barsFader = barsPanel.GetComponent<UIFader>();
+                Player player = Player.main;
+                Survival survival = player.GetComponent<Survival>();
+                fadeBarsPanel = AdditionalVROptions.DynamicHUD;
+                if(fadeBarsPanel && player && survival && barsFader)
+                {
+                    //if player health changes more than 5% or health less that 33%
+                    if(Mathf.Abs(player.liveMixin.health-lastHealth)/player.liveMixin.maxHealth > 0.05f || player.liveMixin.GetHealthFraction() < 0.33f)
+                    {
+                        fadeBarsPanel = false;
+                        //ErrorMessage.AddMessage("Health Trigger");
+                    }  
+                    if ((player.GetOxygenAvailable() < (player.GetOxygenCapacity() / 3)) || player.GetOxygenAvailable() > lastOxygen)
+                    {
+                        fadeBarsPanel = false;
+                        //ErrorMessage.AddMessage("Oxygen Trigger");
+                    }
+                    if (survival.food < 50 || survival.food > lastFood)
+                    {
+                        fadeBarsPanel = false;
+                        //ErrorMessage.AddMessage("Food Trigger");
+                    }
+                    if (survival.water < 50 || survival.water > lastWater)
+                    {
+                        fadeBarsPanel = false;
+                    }
+                    if (player.GetPDA().isInUse)
+                    {
+                        fadeBarsPanel = false;
+                        //stop any quickslots fades and make it visible while the PDA is open.
+                        quickSlots.GetComponent<UIFader>().Fade(AdditionalVROptions.HUD_Alpha, 0, 0, true);
+                    }
+
+                    lastHealth = player.liveMixin.health;
+                    lastOxygen = player.GetOxygenAvailable();
+                    lastFood = survival.food;
+                    lastWater = survival.water;
+                }
+                barsFader.SetAutoFade(fadeBarsPanel);
+            }
+        }
+
         [HarmonyPatch(typeof(QuickSlots), nameof(QuickSlots.NotifySelect))]
         class QuickSlots_NotifySelect_Patch
         {
@@ -133,10 +198,11 @@ namespace VREnhancements
             {
                 UIFader qsFader = quickSlots.GetComponent<UIFader>();
                 qsFader.Fade(AdditionalVROptions.HUD_Alpha, 0, 0, true);//make quickslot visible as soon as the slot changes. Using Fade to cancel any running fades.
-                if(!seaglideEquipped && AdditionalVROptions.DynamicHUD)
-                    qsFader.Fade(0, 1, 2);
-                else if(seaglideEquipped)
-                    qsFader.Fade(0, 1, 1, true);//fade with shorter delay if seaglide is active.
+                if (!seaglideEquipped)
+                    qsFader.autoFadeDelay = 2;
+                else
+                    qsFader.autoFadeDelay = 1; ;//fade with shorter delay if seaglide is active.
+                qsFader.SetAutoFade(AdditionalVROptions.DynamicHUD);
             }
         }
 
@@ -210,12 +276,13 @@ namespace VREnhancements
             public static void Postfix(uGUI_SunbeamCountdown __instance)
             {
                 sunbeamCountdown = __instance.transform;
+                sunbeamCountdown.SetParent(quickSlots.parent, false);
+                sunbeamCountdown.localPosition = new Vector3(0, -150, 0);
                 RectTransform SunbeamRect = __instance.countdownHolder.GetComponent<RectTransform>();
                 SunbeamRect.anchorMax = SunbeamRect.anchorMin = SunbeamRect.pivot = new Vector2(0.5f, 0.5f);
                 SunbeamRect.anchoredPosition = new Vector2(0f, -275f);
                 SunbeamRect.localScale = Vector3.one * 0.75f;
-                __instance.transform.Find("Background").gameObject.SetActive(false);
-                __instance.gameObject.AddComponent<CanvasGroup>();
+                sunbeamCountdown.Find("Background").GetComponent<CanvasRenderer>().SetAlpha(0f);//hide background
             }
 
         }

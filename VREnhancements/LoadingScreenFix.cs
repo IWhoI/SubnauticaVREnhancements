@@ -39,6 +39,7 @@ namespace VREnhancements
                     //remove background image and set background to black
                     loadingArtwork.sprite = null;
                     loadingArtwork.color = Color.black;
+                    loadingArtwork.GetComponent<RectTransform>().localScale = Vector3.one * 2;//temporary fix for when hud distance is increased
                     //center the logo
                     logoRect.anchorMin = midCenter;
                     logoRect.anchorMax = midCenter;

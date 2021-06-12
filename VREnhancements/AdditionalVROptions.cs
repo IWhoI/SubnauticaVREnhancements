@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI;
+using UnityEngine;
 
 namespace VREnhancements
 {
@@ -23,7 +24,7 @@ namespace VREnhancements
             //TODO: Create a new tab instead of using general for all the additional VR options and if possible move existing VR to the same tab
             static void Postfix(uGUI_OptionsPanel __instance)
             {
-                VRETab = __instance.AddTab("More VR Options");
+                VRETab = __instance.AddTab("VR Mod Options");
                 __instance.AddHeading(VRETab, "General Options");
                 __instance.AddToggleOption(VRETab, "Enable VR Animations", GameOptions.enableVrAnimations, delegate (bool v)
                 {
@@ -54,8 +55,7 @@ namespace VREnhancements
                 __instance.AddToggleOption(VRETab, "Dynamic HUD", DynamicHUD, delegate (bool v)
                 {
                     DynamicHUD = v;
-                    if(!DynamicHUD)
-                        UIElementsFixes.UpdateHUDOpacity(HUD_Alpha);
+                    UIElementsFixes.SetDynamicHUD(v);
 
                 });
                 __instance.AddSliderOption(VRETab, "HUD Opacity", HUD_Alpha * 100f, 20, 100, 100, delegate (float v)
@@ -122,6 +122,7 @@ namespace VREnhancements
                 HUD_Distance = serializer.Serialize("VR/HUD_Distance", HUD_Distance);
                 HUD_Scale = serializer.Serialize("VR/HUD_Scale", HUD_Scale);
                 HUD_Alpha = serializer.Serialize("VR/HUD_Alpha", HUD_Alpha);
+                Debug.Log("VR Enhancements Settings Serialized");
             }
         }
 
