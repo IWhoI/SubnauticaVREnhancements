@@ -139,5 +139,21 @@ namespace VREnhancements
                 return false;
             }
         }
+
+        [HarmonyPatch(typeof(ArmsController), nameof(ArmsController.Start))]
+        class ArmsController_Start__Patch
+        {
+
+            static void Postfix(ArmsController __instance)
+            {
+                //the player model materials have the shader keyword UWE_VR_FADEOUT which seems to cause the top part of the model to go translucent
+                //this is a quick fix to disable this fading out.
+                //TODO: Figure out how opening the PDA usually disables this.
+                foreach (SkinnedMeshRenderer renderer in __instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                {
+                    renderer.fadeAmount = 0;
+                }
+            }
+        }
     }
 }
