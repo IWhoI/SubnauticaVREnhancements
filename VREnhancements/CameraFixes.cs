@@ -54,7 +54,7 @@ namespace VREnhancements
                     }
                     else if (!__instance.cinematicMode && Player.main.motorMode != Player.MotorMode.Vehicle && Player.main.motorMode != Player.MotorMode.Seaglide)
                     {
-                        if (Player.main.movementSpeed == 0)
+                        if (Player.main.movementSpeed < 1)
                             __instance.viewModel.transform.localPosition = __instance.viewModel.transform.parent.worldToLocalMatrix.MultiplyPoint(forwardRefTransform.position + Vector3.up * defaultYOffset + new Vector3(forwardRefTransform.forward.x, 0f, forwardRefTransform.forward.z).normalized * defaultZOffset);
                         else
                             __instance.viewModel.transform.localPosition = __instance.viewModel.transform.parent.worldToLocalMatrix.MultiplyPoint(forwardRefTransform.position + Vector3.up * defaultYOffset + new Vector3(forwardRefTransform.forward.x, 0f, forwardRefTransform.forward.z).normalized * (defaultZOffset - 0.1f));
@@ -139,15 +139,14 @@ namespace VREnhancements
                 return false;
             }
         }
-
+        
         [HarmonyPatch(typeof(ArmsController), nameof(ArmsController.Start))]
         class ArmsController_Start__Patch
         {
 
             static void Postfix(ArmsController __instance)
-            {
-                //the player model materials have the shader keyword UWE_VR_FADEOUT which seems to cause the top part of the model to go translucent
-                //this is a quick fix to disable this fading out.
+            { 
+                //this is a quick fix to disable translucent player body but there may be a better way to fix this since the body isn't translucent when the PDA is open
                 //TODO: Figure out how opening the PDA usually disables this.
                 foreach (SkinnedMeshRenderer renderer in __instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 {
