@@ -50,7 +50,7 @@ namespace VREnhancements
                 if(sunbeamCountdown)
                     sunbeamCountdown.Find("Background").GetComponent<CanvasRenderer>().SetAlpha(0f);//make sure the background remains hidden
                 //to keep the reticle always fully visible
-                if (HandReticle.main.GetComponent<CanvasGroup>())
+                if (HandReticle.main && HandReticle.main.GetComponent<CanvasGroup>())
                     HandReticle.main.GetComponent<CanvasGroup>().alpha = 1;
             }
         }
@@ -150,44 +150,54 @@ namespace VREnhancements
             static void Postfix(Player __instance)
             {
                 UIFader barsFader = barsPanel.GetComponent<UIFader>();
+                UIFader qsFader = quickSlots.GetComponent<UIFader>();
                 Player player = Player.main;
                 Survival survival = player.GetComponent<Survival>();
                 fadeBarsPanel = AdditionalVROptions.DynamicHUD;
-                if(fadeBarsPanel && player && survival && barsFader)
+                float fadeInStart = 10;
+                float fadeRange = 10;//max alpha at start+range degrees
+
+                if (AdditionalVROptions.DynamicHUD && !player.GetPDA().isInUse && survival && barsFader)
                 {
                     //if player health changes more than 5% or health less that 33%
+                    //TODO: Easier to read this way but possibly merge all of these into a single if. Also look into fixing the order of operations to not duplicate actions.
                     if(Mathf.Abs(player.liveMixin.health-lastHealth)/player.liveMixin.maxHealth > 0.05f || player.liveMixin.GetHealthFraction() < 0.33f)
                     {
                         fadeBarsPanel = false;
-                        //ErrorMessage.AddMessage("Health Trigger");
                     }  
                     if ((player.GetOxygenAvailable() < (player.GetOxygenCapacity() / 3)) || player.GetOxygenAvailable() > lastOxygen)
                     {
                         fadeBarsPanel = false;
-                        //ErrorMessage.AddMessage("Oxygen Trigger");
                     }
                     if (survival.food < 50 || survival.food > lastFood)
                     {
                         fadeBarsPanel = false;
-                        //ErrorMessage.AddMessage("Food Trigger");
                     }
                     if (survival.water < 50 || survival.water > lastWater)
                     {
                         fadeBarsPanel = false;
                     }
-                    if (player.GetPDA().isInUse)
-                    {
-                        fadeBarsPanel = false;
-                        //stop any quickslots fades and make it visible while the PDA is open.
-                        quickSlots.GetComponent<UIFader>().Fade(AdditionalVROptions.HUD_Alpha, 0, 0, true);
-                    }
-
                     lastHealth = player.liveMixin.health;
                     lastOxygen = player.GetOxygenAvailable();
                     lastFood = survival.food;
                     lastWater = survival.water;
+                    barsFader.SetAutoFade(fadeBarsPanel);
+                    qsFader.SetAutoFade(!Player.main.inExosuit && !Player.main.inSeamoth);
                 }
-                barsFader.SetAutoFade(fadeBarsPanel);
+                //if the PDA is in use turn on look down for hud
+                if (player.GetPDA().isInUse)
+                {
+                    barsFader.SetAutoFade(false);
+                    qsFader.SetAutoFade(false);
+                    //fades the hud in based on the view pitch. Forward is 360/0 degrees and straight down is 90 degrees.
+                    if (MainCamera.camera.transform.localEulerAngles.x < 180)
+                        UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - fadeInStart) / fadeRange, 0, 1) * AdditionalVROptions.HUD_Alpha);
+                    else
+                        UpdateHUDOpacity(0);
+                }
+                else
+                    UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
+                
             }
         }
 
@@ -202,7 +212,8 @@ namespace VREnhancements
                     qsFader.autoFadeDelay = 2;
                 else
                     qsFader.autoFadeDelay = 1; ;//fade with shorter delay if seaglide is active.
-                qsFader.SetAutoFade(AdditionalVROptions.DynamicHUD);
+                //keep the slots visible if piloting the seamoth or suit
+                qsFader.SetAutoFade((AdditionalVROptions.DynamicHUD || seaglideEquipped));
             }
         }
 
@@ -223,22 +234,8 @@ namespace VREnhancements
         [HarmonyPatch(typeof(uGUI_SceneHUD), nameof(uGUI_SceneHUD.Update))]
         class SceneHUD_Update_Patch
         {
-            static float fadeInStart = 25;
-            static float fadeRange = 10;//max alpha at start+range degrees
             static void Postfix(uGUI_SceneHUD __instance)
             {
-                //don't change the HUD if using cameras.
-                if(uGUI_CameraDrone.main.content.activeInHierarchy || uGUI_CameraCyclops.main.content.activeInHierarchy)
-                    return;
-                //TODO: only use dynamic hud for fading elements. create new option for look down for hud.
-                /*if (AdditionalVROptions.DynamicHUD && MainCamera.camera)
-                {
-                    //fades the hud in based on the view pitch. Forward is 360/0 degrees and straight down is 90 degrees.
-                    if (MainCamera.camera.transform.localEulerAngles.x < 180)
-                        UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - fadeInStart) / fadeRange, 0, 1) * AdditionalVROptions.HUD_Alpha);
-                    else
-                        UpdateHUDOpacity(0);
-                }*/
                 //TODO: This was just a test and needs to be removed from update and done in a better way.
                 barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);//LookRotatation(PositionOfObjectToRotate - lookatTargetPosition) MainCamera (UI) is always at (0,0,0);
                 quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
@@ -430,5 +427,7 @@ namespace VREnhancements
                 }
             }
         }
+
+
     }
 }
