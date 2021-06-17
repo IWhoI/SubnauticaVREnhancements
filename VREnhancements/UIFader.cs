@@ -12,7 +12,7 @@ namespace VREnhancements
         bool autoFadeOut = false;
         public float autoFadeDelay = 1;
 
-        void Start()
+        void Awake()
         {
             if (!this.gameObject.GetComponent<CanvasGroup>())
                cg = this.gameObject.AddComponent<CanvasGroup>();

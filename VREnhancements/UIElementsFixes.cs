@@ -20,8 +20,6 @@ namespace VREnhancements
         static Transform quickSlots;
         static Transform compass;
         static Transform powerIndicator;
-        static Transform seamothHUD;
-        static Transform exosuitHUD;
         static Transform sunbeamCountdown;
         static bool fadeBarsPanel = true;
         static float lastHealth = -1;
@@ -51,7 +49,7 @@ namespace VREnhancements
                     sunbeamCountdown.Find("Background").GetComponent<CanvasRenderer>().SetAlpha(0f);//make sure the background remains hidden
                 //to keep the reticle always fully visible
                 if (HandReticle.main && HandReticle.main.GetComponent<CanvasGroup>())
-                    HandReticle.main.GetComponent<CanvasGroup>().alpha = 1;
+                    HandReticle.main.GetComponent<CanvasGroup>().alpha = 0.8f;
             }
         }
         public static void UpdateHUDDistance(float distance)
@@ -100,10 +98,11 @@ namespace VREnhancements
             uGUI_PlayerDeath.main.blackOverlay.gameObject.GetComponent<RectTransform>().localScale = Vector3.one * 2;
             uGUI_PlayerSleep.main.blackOverlay.gameObject.GetComponent<RectTransform>().localScale = Vector3.one * 2;
         }
+
         [HarmonyPatch(typeof(Seaglide), nameof(Seaglide.OnDraw))]
         class Seaglide_OnDraw_Patch
         {
-            static void Postfix(Seaglide __instance)
+            static void Postfix()
             {
                 seaglideEquipped = true;
             }
@@ -111,7 +110,7 @@ namespace VREnhancements
         [HarmonyPatch(typeof(Seaglide), nameof(Seaglide.OnHolster))]
         class Seaglide_OnHolster_Patch
         {
-            static void Postfix(Seaglide __instance)
+            static void Postfix()
             {
                 seaglideEquipped = false;
             }
@@ -139,15 +138,15 @@ namespace VREnhancements
                 quickSlots = __instance.transform.Find("Content/QuickSlots");
                 compass = __instance.transform.Find("Content/DepthCompass");
                 powerIndicator = __instance.transform.Find("Content/PowerIndicator");
-                seamothHUD = __instance.transform.Find("Content/Seamoth");
-                exosuitHUD = __instance.transform.Find("Content/Exosuit");
+                //TODO: Look into finding a better way to do the vehicle HUD
+                __instance.gameObject.AddComponent<VehicleHUDManager>();
             }
         }
 
         [HarmonyPatch(typeof(Player), nameof(Player.Update))]
         class Player_Update_Patch
         {
-            static void Postfix(Player __instance)
+            static void Postfix()
             {
                 UIFader barsFader = barsPanel.GetComponent<UIFader>();
                 UIFader qsFader = quickSlots.GetComponent<UIFader>();
@@ -197,14 +196,21 @@ namespace VREnhancements
                 }
                 else
                     UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
-                
+                /*Vector3 lookAtTarget;
+                if (player.inSeamoth || player.inExosuit)
+                    lookAtTarget = MainCameraControl.main.transform.position;
+                else
+                    lookAtTarget = Vector3.zero;//UI camera is at zero                
+                quickSlots.rotation = Quaternion.LookRotation(quickSlots.position - lookAtTarget);
+                compass.rotation = Quaternion.LookRotation(compass.position - lookAtTarget);
+                barsPanel.rotation = Quaternion.LookRotation(barsPanel.position - lookAtTarget);*/
             }
         }
 
         [HarmonyPatch(typeof(QuickSlots), nameof(QuickSlots.NotifySelect))]
         class QuickSlots_NotifySelect_Patch
         {
-            static void Postfix(QuickSlots __instance)
+            static void Postfix()
             {
                 UIFader qsFader = quickSlots.GetComponent<UIFader>();
                 qsFader.Fade(AdditionalVROptions.HUD_Alpha, 0, 0, true);//make quickslot visible as soon as the slot changes. Using Fade to cancel any running fades.
@@ -220,7 +226,7 @@ namespace VREnhancements
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.Start))]
         class HandReticle_Start_Patch
         {
-            static void Postfix(uGUI_SceneHUD __instance)
+            static void Postfix()
             {
                 //add CanvasGroup to the HandReticle to be able to override the HUD CanvasGroup alpha settings to keep the Reticle always opaque.
                 if (HandReticle.main)
@@ -228,21 +234,6 @@ namespace VREnhancements
                     HandReticle.main.gameObject.AddComponent<CanvasGroup>().ignoreParentGroups = true;//not sure if this will cause issues when changes are made to the ScreenCanvas CanvasGroup;
                 }
                    
-            }
-        }
-
-        [HarmonyPatch(typeof(uGUI_SceneHUD), nameof(uGUI_SceneHUD.Update))]
-        class SceneHUD_Update_Patch
-        {
-            static void Postfix(uGUI_SceneHUD __instance)
-            {
-                //TODO: This was just a test and needs to be removed from update and done in a better way.
-                barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);//LookRotatation(PositionOfObjectToRotate - lookatTargetPosition) MainCamera (UI) is always at (0,0,0);
-                quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
-                compass.rotation = Quaternion.LookRotation(compass.position);
-                powerIndicator.rotation = Quaternion.LookRotation(powerIndicator.position);
-                seamothHUD.rotation = Quaternion.LookRotation(seamothHUD.position);
-                exosuitHUD.rotation = Quaternion.LookRotation(exosuitHUD.position);
             }
         }
         public static void SetSubtitleHeight(float percentage)
@@ -372,9 +363,9 @@ namespace VREnhancements
                 }
                 return true;
             }
-            //this fixes reticle alignment in menus etc
             static void Postfix(HandReticle __instance)
             {
+                //this fixes reticle alignment in menus etc
                 __instance.transform.position = new Vector3(0f, 0f, __instance.transform.position.z);
             }
         }
@@ -427,7 +418,5 @@ namespace VREnhancements
                 }
             }
         }
-
-
     }
 }

@@ -99,6 +99,7 @@
     <Compile Include="MainPatcher.cs" />
     <Compile Include="PDAFixes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="VehicleHUDManager.cs" />
     <Compile Include="UIElementsFixes.cs" />
     <Compile Include="UIFader.cs" />
   </ItemGroup>
