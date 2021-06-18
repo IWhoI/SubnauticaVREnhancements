@@ -196,14 +196,21 @@ namespace VREnhancements
                 }
                 else
                     UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
-                /*Vector3 lookAtTarget;
+                Vector3 lookAtTarget;
                 if (player.inSeamoth || player.inExosuit)
-                    lookAtTarget = MainCameraControl.main.transform.position;
+                {
+                    lookAtTarget = SNCameraRoot.main.mainCamera.transform.position;//this moves with the VR headset
+                    if(player.inSeamoth)
+                        VehicleHUDManager.seamothHUD.rotation = Quaternion.LookRotation(VehicleHUDManager.seamothHUD.position - lookAtTarget, player.transform.up);
+                    else
+                        VehicleHUDManager.exosuitHUD.rotation = Quaternion.LookRotation(VehicleHUDManager.exosuitHUD.position - lookAtTarget, player.transform.up);
+                }
                 else
-                    lookAtTarget = Vector3.zero;//UI camera is at zero                
-                quickSlots.rotation = Quaternion.LookRotation(quickSlots.position - lookAtTarget);
-                compass.rotation = Quaternion.LookRotation(compass.position - lookAtTarget);
-                barsPanel.rotation = Quaternion.LookRotation(barsPanel.position - lookAtTarget);*/
+                    lookAtTarget = Vector3.zero;//UI camera is at zero
+                                 
+                quickSlots.rotation = Quaternion.LookRotation(quickSlots.position - lookAtTarget, player.transform.up);//used player.transform.up to prevent weird rotation when pitching the seamoth
+                compass.rotation = Quaternion.LookRotation(compass.position - lookAtTarget, player.transform.up);
+                barsPanel.rotation = Quaternion.LookRotation(barsPanel.position - lookAtTarget, player.transform.up);
             }
         }
 
