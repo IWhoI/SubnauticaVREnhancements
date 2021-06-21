@@ -38,7 +38,7 @@ namespace VREnhancements
             vehicleHUD.layer = LayerMask.NameToLayer("Default");
             vehicleHUD.transform.localScale = Vector3.one * 0.0015f;//set scale to the original ScreenCanvas scale
             vehicleHUD.transform.localPosition = new Vector3(0,0, canvasDistance);
-            canvasGroup.alpha = AdditionalVROptions.HUD_Alpha;
+            canvasGroup.alpha = UIElementsFixes.HUDAlpha;
             HUDContent = GameObject.Find("HUD/Content").transform;
             seamothHUD = HUDContent.Find("Seamoth").transform;
             exosuitHUD = HUDContent.Find("Exosuit").transform;

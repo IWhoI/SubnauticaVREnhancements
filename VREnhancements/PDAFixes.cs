@@ -6,14 +6,21 @@ namespace VREnhancements
 {
     class PDAFixes
     {
-        private static float pdaScale = 1.45f;//1.75f;
-        private static float screenScale = 0.0003f;//0.00035f;
-        private static float pdaXOffset = -0.35f;
-        private static float pdaXRot = 220f;
-        private static float pdaYRot = 30f;
-        private static float pdaZRot = 75f;
-        private static GameObject leftHandTarget;
-        private static FullBodyBipedIK myIK;
+        static float pdaScale = 1.45f;//1.75f;
+        static float screenScale = 0.0003f;//0.00035f;
+        static float pdaXOffset = -0.35f;
+        public static float pdaDistance;
+        static float pdaXRot = 220f;
+        static float pdaYRot = 30f;
+        static float pdaZRot = 75f;
+        static GameObject leftHandTarget;
+        static FullBodyBipedIK myIK;
+
+        public void SetPDADistance(float distance)
+        {
+            pdaDistance = distance;
+        }
+
 
         [HarmonyPatch(typeof(PDA), nameof(PDA.Open))]
         class PDA_Open_Patch
@@ -37,9 +44,9 @@ namespace VREnhancements
                     // leftHandTarget.transform.localScale *= 0.05f;
                     leftHandTarget.transform.parent = Player.main.camRoot.transform;
                     if (Player.main.motorMode != Player.MotorMode.Vehicle)
-                        leftHandTarget.transform.localPosition = leftHandTarget.transform.parent.transform.InverseTransformPoint(Player.main.playerController.forwardReference.position + Player.main.armsController.transform.right * pdaXOffset + Vector3.up * -0.15f + new Vector3(Player.main.armsController.transform.forward.x, 0f, Player.main.armsController.transform.forward.z).normalized * AdditionalVROptions.PDA_Distance);
+                        leftHandTarget.transform.localPosition = leftHandTarget.transform.parent.transform.InverseTransformPoint(Player.main.playerController.forwardReference.position + Player.main.armsController.transform.right * pdaXOffset + Vector3.up * -0.15f + new Vector3(Player.main.armsController.transform.forward.x, 0f, Player.main.armsController.transform.forward.z).normalized * pdaDistance);
                     else
-                        leftHandTarget.transform.localPosition = leftHandTarget.transform.parent.transform.InverseTransformPoint(leftHandTarget.transform.parent.transform.position + leftHandTarget.transform.parent.transform.right * pdaXOffset + leftHandTarget.transform.parent.transform.forward * AdditionalVROptions.PDA_Distance + leftHandTarget.transform.parent.transform.up * -0.15f);
+                        leftHandTarget.transform.localPosition = leftHandTarget.transform.parent.transform.InverseTransformPoint(leftHandTarget.transform.parent.transform.position + leftHandTarget.transform.parent.transform.right * pdaXOffset + leftHandTarget.transform.parent.transform.forward * pdaDistance + leftHandTarget.transform.parent.transform.up * -0.15f);
                     leftHandTarget.transform.rotation = Player.main.armsController.transform.rotation * Quaternion.Euler(pdaXRot, pdaYRot, pdaZRot);
                 }
             }
@@ -63,7 +70,9 @@ namespace VREnhancements
             static bool Prefix()
             {
                 if (leftHandTarget)
+                {
                     myIK.solver.leftHandEffector.target = leftHandTarget.transform;
+                }  
                 return true;
             }
         }

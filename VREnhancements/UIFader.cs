@@ -37,7 +37,7 @@ namespace VREnhancements
         {
             autoFadeOut = enabled;
             if (!enabled)
-                Fade(AdditionalVROptions.HUD_Alpha, 0, 0, true);
+                Fade(UIElementsFixes.HUDAlpha, 0, 0, true);
         }
        public void Fade(float targetAlpha, float fadeSpeed = 1, float delaySeconds = 0, bool reset = false)
         {
