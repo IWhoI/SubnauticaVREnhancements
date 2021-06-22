@@ -9,7 +9,7 @@ namespace VREnhancements
         static float pdaScale = 1.45f;//1.75f;
         static float screenScale = 0.0003f;//0.00035f;
         static float pdaXOffset = -0.35f;
-        public static float pdaDistance;
+        public static float pdaDistance=0.4f;
         static float pdaXRot = 220f;
         static float pdaYRot = 30f;
         static float pdaZRot = 75f;
@@ -36,13 +36,10 @@ namespace VREnhancements
                     __instance.transform.localScale = new Vector3(pdaScale, pdaScale, 1f);
                     component.transform.localScale = Vector3.one * screenScale;
                     component.SetAnchor(__instance.screenAnchor);
-
                     if (!leftHandTarget)
                         leftHandTarget = new GameObject();
-                    //leftHandTarget = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    //leftHandTarget.GetComponent<Collider>().enabled = false;
-                    // leftHandTarget.transform.localScale *= 0.05f;
                     leftHandTarget.transform.parent = Player.main.camRoot.transform;
+                    //TODO: This is probably needlessly complicated and could be done in a simpler way
                     if (Player.main.motorMode != Player.MotorMode.Vehicle)
                         leftHandTarget.transform.localPosition = leftHandTarget.transform.parent.transform.InverseTransformPoint(Player.main.playerController.forwardReference.position + Player.main.armsController.transform.right * pdaXOffset + Vector3.up * -0.15f + new Vector3(Player.main.armsController.transform.forward.x, 0f, Player.main.armsController.transform.forward.z).normalized * pdaDistance);
                     else

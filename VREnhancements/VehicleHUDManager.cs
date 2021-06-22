@@ -57,13 +57,13 @@ namespace VREnhancements
             Player player = Player.main;
             if (player)
             {
-                //TODO: Probably better to just do this attachment in the Player.Awake
+                //TODO: Probably better to just do this attachment in the Player.Start
                 if (!vehicleHUDAttached)
                 {
-                    vehicleHUD.transform.SetParent(MainCameraControl.main.viewModel, false);//attach vehicle hud to the player body instead of camera. Didn't attach to vehicle since hud moved around too much when operating the exosuit.
+                    //attach vehicle hud to the player body since it doesn't move when piloting. Didn't attach to vehicle since hud moved around too much when operating the exosuit.
+                    vehicleHUD.transform.SetParent(MainCameraControl.main.viewModel, false);
                     vehicleHUDAttached = true;
                 }
-                PDA pda = player.GetPDA();
                 if (player.inSeamoth || player.inExosuit)
                 {
                     if(!vehicleHUD.activeInHierarchy)
@@ -89,7 +89,7 @@ namespace VREnhancements
                         vehicleHUD.SetActive(true);
                     }
                 }
-                else if(vehicleHUD.activeInHierarchy)
+                else if(vehicleHUD.activeInHierarchy)//if not in seamoth or exosuit but vehicleHUD is active then move elements back to the normal HUD and disable Vehicle HUD
                 {
                     compass.SetParent(HUDContent, false);
                     compass.localPosition = originalCompassPos;

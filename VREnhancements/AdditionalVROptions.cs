@@ -13,7 +13,7 @@ namespace VREnhancements
         [HarmonyPatch(typeof(uGUI_OptionsPanel), nameof(uGUI_OptionsPanel.AddTabs))]
         class GeneralTab_VROptionsPatch
         {
-            //TODO: Create a new tab instead of using general for all the additional VR options and if possible move existing VR to the same tab
+            //TODO: Move VR settings back under General Options since there is no scrollbar in the tabs area
             static void Postfix(uGUI_OptionsPanel __instance)
             {
                 VRETab = __instance.AddTab("VR Mod Options");

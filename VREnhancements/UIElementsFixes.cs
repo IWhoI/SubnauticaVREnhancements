@@ -11,12 +11,12 @@ namespace VREnhancements
     class UIElementsFixes
     {
 
-        public static float subtitleHeight;
-        public static float subtitleScale;
-        public static bool dynamicHUD;
-        public static float HUDAlpha;
-        public static float HUDDistance;
-        public static float HUDScale;
+        public static float subtitleHeight=50f;
+        public static float subtitleScale=1f;
+        public static bool dynamicHUD=true;
+        public static float HUDAlpha=0.75f;
+        public static float HUDDistance=1.5f;
+        public static float HUDScale=1;
         static RectTransform CameraCyclopsHUD;
         static RectTransform CameraDroneHUD;
         static float CameraHUDScaleFactor = 0.75f;
@@ -25,18 +25,19 @@ namespace VREnhancements
         static Transform barsPanel;
         static Transform quickSlots;
         static Transform compass;
-        static Transform powerIndicator;
         static Transform sunbeamCountdown;
         static bool fadeBarsPanel = true;
         static float lastHealth = -1;
         static float lastOxygen = -1;
         static float lastFood = -1;
         static float lastWater = -1;
+        static GameObject mainMenuUICam;
+        static Transform mainMenu;
 
 
         public static void SetDynamicHUD(bool enabled)
         {
-            //was planning on using a list for this but it's only ever going to be just these two elements
+            dynamicHUD = enabled;
             UIFader qsFader = quickSlots.gameObject.GetComponent<UIFader>();
             UIFader barsFader = barsPanel.gameObject.GetComponent<UIFader>();
             if (qsFader && barsFader)
@@ -44,11 +45,11 @@ namespace VREnhancements
                 qsFader.SetAutoFade(enabled);
                 barsFader.SetAutoFade(enabled);
             }
-            dynamicHUD = enabled;
         }
         public static void UpdateHUDOpacity(float alpha)
         {
-            if(sceneHUD)
+            HUDAlpha = alpha;
+            if (sceneHUD)
             {
                 if (sceneHUD.GetComponent<CanvasGroup>())
                     sceneHUD.GetComponent<CanvasGroup>().alpha = alpha;
@@ -57,34 +58,33 @@ namespace VREnhancements
                 //to keep the reticle always fully visible
                 if (HandReticle.main && HandReticle.main.GetComponent<CanvasGroup>())
                     HandReticle.main.GetComponent<CanvasGroup>().alpha = 0.8f;
-                HUDAlpha = alpha;
             }
         }
         public static void UpdateHUDDistance(float distance)
         {
+
+            HUDDistance = distance;
             if (sceneHUD)
             {
                 sceneHUD.GetComponentInParent<Canvas>().transform.position =
                     new Vector3(sceneHUD.GetComponentInParent<Canvas>().transform.position.x,
                     sceneHUD.GetComponentInParent<Canvas>().transform.position.y,
                     distance);
-                HUDDistance = distance;
                 //sceneHUD.transform.position = new Vector3(sceneHUD.transform.position.x,sceneHUD.transform.position.y,distance);
             }
         }
         public static void UpdateHUDScale(float scale)
         {
+            HUDScale = scale;
             if (sceneHUD)
             {
                 sceneHUD.GetComponent<RectTransform>().localScale = Vector3.one * scale;
-                HUDScale = scale;
             }
             //TODO: Consider if only the HUD should be scaled or the whole screen canvas
         }
 
         public static void InitHUD()
         {
-            //TODO: fix stuff like the death overlay and sleep overlay being too far back if huddistance is set back.
             sceneHUD.gameObject.AddComponent<CanvasGroup>();//add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
             UpdateHUDOpacity(HUDAlpha);
             UpdateHUDDistance(HUDDistance);
@@ -155,13 +155,20 @@ namespace VREnhancements
         {
             static void Postfix(uGUI_SceneHUD __instance)
             {
-                //TODO: Consider saving a reference to the Content child instead since I don't think I ever needed the HUD Object.
                 sceneHUD = __instance;
                 barsPanel = __instance.transform.Find("Content/BarsPanel");
                 quickSlots = __instance.transform.Find("Content/QuickSlots");
                 compass = __instance.transform.Find("Content/DepthCompass");
-                powerIndicator = __instance.transform.Find("Content/PowerIndicator");
                 __instance.gameObject.AddComponent<VehicleHUDManager>();
+            }
+        }
+
+        [HarmonyPatch(typeof(Player), nameof(Player.Awake))]
+        class Player_Awake_Patch
+        {
+            static void Postfix()
+            {
+
             }
         }
 
@@ -179,22 +186,11 @@ namespace VREnhancements
                 float fadeRange = 10;//max alpha at start+range degrees
 
                 if (dynamicHUD && !player.GetPDA().isInUse && survival && barsFader)
-                {
-                    //if player health changes more than 5% or health less that 33%
-                    //TODO: Easier to read this way but possibly merge all of these into a single if. Also look into fixing the order of operations to not duplicate actions.
-                    if(Mathf.Abs(player.liveMixin.health-lastHealth)/player.liveMixin.maxHealth > 0.05f || player.liveMixin.GetHealthFraction() < 0.33f)
-                    {
-                        fadeBarsPanel = false;
-                    }  
-                    if ((player.GetOxygenAvailable() < (player.GetOxygenCapacity() / 3)) || player.GetOxygenAvailable() > lastOxygen)
-                    {
-                        fadeBarsPanel = false;
-                    }
-                    if (survival.food < 50 || survival.food > lastFood)
-                    {
-                        fadeBarsPanel = false;
-                    }
-                    if (survival.water < 50 || survival.water > lastWater)
+                { 
+                    if(Mathf.Abs(player.liveMixin.health-lastHealth)/player.liveMixin.maxHealth > 0.05f || player.liveMixin.GetHealthFraction() < 0.33f ||
+                        player.GetOxygenAvailable() < (player.GetOxygenCapacity() / 3) || player.GetOxygenAvailable() > lastOxygen ||
+                        survival.food < 50 || survival.food > lastFood ||
+                        survival.water < 50 || survival.water > lastWater)
                     {
                         fadeBarsPanel = false;
                     }
@@ -279,7 +275,6 @@ namespace VREnhancements
         class SunbeamCountdown_Start_Patch
         {
             //makes the Sunbeam timer visible by moving it from the top right to bottom middle. Also hides the timer background.
-            //TODO: consider removing the background component completely so the workaround in SetHUDOpacity will be unnescessary.
             public static void Postfix(uGUI_SunbeamCountdown __instance)
             {
                 sunbeamCountdown = __instance.transform;
@@ -350,12 +345,18 @@ namespace VREnhancements
                 //shift the main menu up a little.
                 //TODO: Make the menu centered to reticle position at some point after startup then have the menu snap centered to the reticle if the reticle leaves the menu area.
                 //Consider how the Subnautica background would be affected.
-                GameObject mainMenu = __instance.transform.Find("Panel/MainMenu").gameObject;
-                if (mainMenu)
-                {
-                    mainMenu.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 385);
-                    return;
-                }
+                mainMenuUICam = GameObject.Find("Cameras/UI Camera");
+                mainMenu = __instance.transform.Find("Panel/MainMenu");
+                //__instance.transform.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 385);
+            }
+        }
+        [HarmonyPatch(typeof(uGUI_MainMenu), nameof(uGUI_MainMenu.Update))]
+        class MM_Update_Patch
+        {
+            static void Postfix(uGUI_MainMenu __instance)
+            {
+                //mainMenu.transform.position = mainMenuUICam.transform.position + (mainMenuUICam.transform.forward * 1.5f);
+                mainMenu.transform.root.rotation = Quaternion.LookRotation(mainMenu.position - mainMenuUICam.transform.position);
             }
         }
 
