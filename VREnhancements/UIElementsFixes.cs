@@ -31,7 +31,7 @@ namespace VREnhancements
         static float lastOxygen = -1;
         static float lastFood = -1;
         static float lastWater = -1;
-        static GameObject mainMenuUICam;
+        static Transform mainMenuUICam;
         static Transform mainMenu;
 
 
@@ -342,10 +342,7 @@ namespace VREnhancements
         {
             static void Postfix(uGUI_MainMenu __instance)
             {
-                //shift the main menu up a little.
-                //TODO: Make the menu centered to reticle position at some point after startup then have the menu snap centered to the reticle if the reticle leaves the menu area.
-                //Consider how the Subnautica background would be affected.
-                mainMenuUICam = GameObject.Find("Cameras/UI Camera");
+                mainMenuUICam = GameObject.Find("Cameras/UI Camera").transform;
                 mainMenu = __instance.transform.Find("Panel/MainMenu");
                 //__instance.transform.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 385);
             }
@@ -355,8 +352,8 @@ namespace VREnhancements
         {
             static void Postfix(uGUI_MainMenu __instance)
             {
-                //mainMenu.transform.position = mainMenuUICam.transform.position + (mainMenuUICam.transform.forward * 1.5f);
-                mainMenu.transform.root.rotation = Quaternion.LookRotation(mainMenu.position - mainMenuUICam.transform.position);
+                //mainMenu.transform.position = mainMenuUICam.position + (mainMenuUICam.forward * 1.5f);
+                mainMenu.transform.root.rotation = Quaternion.LookRotation(mainMenu.position - mainMenuUICam.position);
             }
         }
 
