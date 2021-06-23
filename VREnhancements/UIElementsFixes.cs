@@ -10,13 +10,6 @@ namespace VREnhancements
 {
     class UIElementsFixes
     {
-
-        public static float subtitleHeight=50f;
-        public static float subtitleScale=1f;
-        public static bool dynamicHUD=true;
-        public static float HUDAlpha=0.75f;
-        public static float HUDDistance=1.5f;
-        public static float HUDScale=1;
         static RectTransform CameraCyclopsHUD;
         static RectTransform CameraDroneHUD;
         static float CameraHUDScaleFactor = 0.75f;
@@ -37,7 +30,6 @@ namespace VREnhancements
 
         public static void SetDynamicHUD(bool enabled)
         {
-            dynamicHUD = enabled;
             UIFader qsFader = quickSlots.gameObject.GetComponent<UIFader>();
             UIFader barsFader = barsPanel.gameObject.GetComponent<UIFader>();
             if (qsFader && barsFader)
@@ -48,11 +40,12 @@ namespace VREnhancements
         }
         public static void UpdateHUDOpacity(float alpha)
         {
-            HUDAlpha = alpha;
             if (sceneHUD)
             {
                 if (sceneHUD.GetComponent<CanvasGroup>())
                     sceneHUD.GetComponent<CanvasGroup>().alpha = alpha;
+                if (VehicleHUDManager.vehicleCanvas)
+                    VehicleHUDManager.vehicleCanvas.GetComponent<CanvasGroup>().alpha = alpha;
                 if(sunbeamCountdown)
                     sunbeamCountdown.Find("Background").GetComponent<CanvasRenderer>().SetAlpha(0f);//make sure the background remains hidden
                 //to keep the reticle always fully visible
@@ -62,8 +55,6 @@ namespace VREnhancements
         }
         public static void UpdateHUDDistance(float distance)
         {
-
-            HUDDistance = distance;
             if (sceneHUD)
             {
                 sceneHUD.GetComponentInParent<Canvas>().transform.position =
@@ -75,7 +66,6 @@ namespace VREnhancements
         }
         public static void UpdateHUDScale(float scale)
         {
-            HUDScale = scale;
             if (sceneHUD)
             {
                 sceneHUD.GetComponent<RectTransform>().localScale = Vector3.one * scale;
@@ -86,21 +76,21 @@ namespace VREnhancements
         public static void InitHUD()
         {
             sceneHUD.gameObject.AddComponent<CanvasGroup>();//add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
-            UpdateHUDOpacity(HUDAlpha);
-            UpdateHUDDistance(HUDDistance);
-            UpdateHUDScale(HUDScale);
+            UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
+            UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
+            UpdateHUDScale(AdditionalVROptions.HUD_Scale);
             if (!quickSlots.GetComponent<UIFader>())
             {
                 UIFader qsFader = quickSlots.gameObject.AddComponent<UIFader>();
                 if (qsFader)
-                    qsFader.SetAutoFade(dynamicHUD);
+                    qsFader.SetAutoFade(AdditionalVROptions.dynamicHUD);
             }
             if (!barsPanel.GetComponent<UIFader>())
             {
                 UIFader barsFader = barsPanel.gameObject.AddComponent<UIFader>();
                 if (barsFader)
                 {
-                    barsFader.SetAutoFade(dynamicHUD);
+                    barsFader.SetAutoFade(AdditionalVROptions.dynamicHUD);
                     barsFader.autoFadeDelay = 2;
                 }
             }
@@ -112,12 +102,10 @@ namespace VREnhancements
         }
         public static void SetSubtitleHeight(float percentage)
         {
-            subtitleHeight = percentage;
             Subtitles.main.popup.oy = GraphicsUtil.GetScreenSize().y * percentage / 100;
         }
         public static void SetSubtitleScale(float scale)
         {
-            subtitleScale = scale;
             Subtitles.main.popup.GetComponent<RectTransform>().localScale = Vector3.one * scale;
         }
 
@@ -181,11 +169,11 @@ namespace VREnhancements
                 UIFader qsFader = quickSlots.GetComponent<UIFader>();
                 Player player = Player.main;
                 Survival survival = player.GetComponent<Survival>();
-                fadeBarsPanel = dynamicHUD;
+                fadeBarsPanel = AdditionalVROptions.dynamicHUD;
                 float fadeInStart = 10;
                 float fadeRange = 10;//max alpha at start+range degrees
 
-                if (dynamicHUD && !player.GetPDA().isInUse && survival && barsFader)
+                if (AdditionalVROptions.dynamicHUD && !player.GetPDA().isInUse && survival && barsFader)
                 { 
                     if(Mathf.Abs(player.liveMixin.health-lastHealth)/player.liveMixin.maxHealth > 0.05f || player.liveMixin.GetHealthFraction() < 0.33f ||
                         player.GetOxygenAvailable() < (player.GetOxygenCapacity() / 3) || player.GetOxygenAvailable() > lastOxygen ||
@@ -208,12 +196,12 @@ namespace VREnhancements
                     qsFader.SetAutoFade(false);
                     //fades the hud in based on the view pitch. Forward is 360/0 degrees and straight down is 90 degrees.
                     if (MainCamera.camera.transform.localEulerAngles.x < 180)
-                        UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - fadeInStart) / fadeRange, 0, 1) * HUDAlpha);
+                        UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - fadeInStart) / fadeRange, 0, 1) * AdditionalVROptions.HUD_Alpha);
                     else
                         UpdateHUDOpacity(0);
                 }
                 else
-                    UpdateHUDOpacity(HUDAlpha);
+                    UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);//TODO: Fix this. should not be setting opacity every fame
                 Vector3 lookAtTarget;
                 if (player.inSeamoth || player.inExosuit)
                 {
@@ -237,13 +225,13 @@ namespace VREnhancements
             static void Postfix()
             {
                 UIFader qsFader = quickSlots.GetComponent<UIFader>();
-                qsFader.Fade(HUDAlpha, 0, 0, true);//make quickslot visible as soon as the slot changes. Using Fade to cancel any running fades.
+                qsFader.Fade(AdditionalVROptions.HUD_Alpha, 0, 0, true);//make quickslot visible as soon as the slot changes. Using Fade to cancel any running fades.
                 if (!seaglideEquipped)
                     qsFader.autoFadeDelay = 2;
                 else
                     qsFader.autoFadeDelay = 1; ;//fade with shorter delay if seaglide is active.
                 //keep the slots visible if piloting the seamoth or suit
-                qsFader.SetAutoFade((dynamicHUD || seaglideEquipped));
+                qsFader.SetAutoFade((AdditionalVROptions.dynamicHUD || seaglideEquipped));
             }
         }
 
@@ -266,8 +254,8 @@ namespace VREnhancements
             static void Postfix(Subtitles __instance)
             {
                 __instance.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);//to keep subtitles centered when scaling.
-                SetSubtitleHeight(subtitleHeight);                
-                SetSubtitleScale(subtitleScale);
+                SetSubtitleHeight(AdditionalVROptions.subtitleHeight);                
+                SetSubtitleScale(AdditionalVROptions.subtitleScale);
             }
         }
 
@@ -298,7 +286,7 @@ namespace VREnhancements
                 CameraDroneHUD = __instance.transform.Find("Content/CameraScannerRoom").GetComponent<RectTransform>();
                 if (CameraDroneHUD)
                 {
-                    CameraDroneHUD.localScale = new Vector3(CameraHUDScaleFactor * HUDScale, CameraHUDScaleFactor * HUDScale, 1f);
+                    CameraDroneHUD.localScale = new Vector3(CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, 1f);
                 }
             }
         }
@@ -308,7 +296,7 @@ namespace VREnhancements
             //make sure the camera HUD is visible
             static void Postfix(uGUI_CameraDrone __instance)
             {
-                UpdateHUDOpacity(HUDAlpha);
+                UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             }
         }
 
@@ -321,7 +309,7 @@ namespace VREnhancements
                 CameraCyclopsHUD = __instance.transform.Find("Content/CameraCyclops").GetComponent<RectTransform>();
                 if (CameraCyclopsHUD)
                 {
-                    CameraCyclopsHUD.localScale = new Vector3(CameraHUDScaleFactor * HUDScale, CameraHUDScaleFactor * HUDScale, 1f);
+                    CameraCyclopsHUD.localScale = new Vector3(CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, 1f);
                 }
 
             }
@@ -333,7 +321,7 @@ namespace VREnhancements
             //make sure the camera HUD is visible
             static void Postfix(uGUI_CameraCyclops __instance)
             {
-                UpdateHUDOpacity(HUDAlpha);
+                UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             }
         }
 
@@ -353,7 +341,8 @@ namespace VREnhancements
             static void Postfix(uGUI_MainMenu __instance)
             {
                 //mainMenu.transform.position = mainMenuUICam.position + (mainMenuUICam.forward * 1.5f);
-                mainMenu.transform.root.rotation = Quaternion.LookRotation(mainMenu.position - mainMenuUICam.position);
+                //keep the main menu tilted towards the camera.
+                mainMenu.transform.root.rotation = Quaternion.LookRotation(mainMenu.position - new Vector3(mainMenuUICam.position.x,mainMenuUICam.position.y, mainMenu.position.z));
             }
         }
 
@@ -375,7 +364,7 @@ namespace VREnhancements
                     }
                     else if (Player.main.GetMode() == Player.Mode.LockedPiloting || CameraCyclopsHUD.gameObject.activeInHierarchy)
                     {
-                        __instance.SetTargetDistance(HUDDistance);
+                        __instance.SetTargetDistance(AdditionalVROptions.HUD_Distance);
                     }
                 }
                 return true;

@@ -4,8 +4,7 @@ namespace VREnhancements
 {
     class VehicleHUDManager : MonoBehaviour
     {
-        GameObject vehicleHUD;
-        CanvasGroup canvasGroup;
+        public static GameObject vehicleCanvas;
         Transform barsPanel;
         Transform quickSlots;
         public static Transform seamothHUD;
@@ -29,27 +28,26 @@ namespace VREnhancements
         void Awake()
         {
             //create a new canvas worldspace canvas for vehicles
-            vehicleHUD = new GameObject("VRVehicleHUD");
-            DontDestroyOnLoad(vehicleHUD);
-            vehicleHUD.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
-            canvasGroup = vehicleHUD.AddComponent<CanvasGroup>();
+            vehicleCanvas = new GameObject("VRVehicleCanvas");
+            DontDestroyOnLoad(vehicleCanvas);
+            vehicleCanvas.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+            vehicleCanvas.AddComponent<CanvasGroup>();
             //TODO:Not that important but figure out how to get raycasts working on the new canvas so drag and drop will work on the quickslots while PDA is open in the vehicle
-            //vehicleHUD.AddComponent<uGUI_GraphicRaycaster>();
-            vehicleHUD.layer = LayerMask.NameToLayer("Default");
-            vehicleHUD.transform.localScale = Vector3.one * 0.0015f;//set scale to the original ScreenCanvas scale
-            vehicleHUD.transform.localPosition = new Vector3(0,0, canvasDistance);
-            canvasGroup.alpha = UIElementsFixes.HUDAlpha;
+            //vehicleCanvas.AddComponent<uGUI_GraphicRaycaster>();
+            vehicleCanvas.layer = LayerMask.NameToLayer("Default");
+            vehicleCanvas.transform.localScale = Vector3.one * 0.0015f;//set scale to the original ScreenCanvas scale
+            vehicleCanvas.transform.localPosition = new Vector3(0,0, canvasDistance);
             HUDContent = GameObject.Find("HUD/Content").transform;
             seamothHUD = HUDContent.Find("Seamoth").transform;
             exosuitHUD = HUDContent.Find("Exosuit").transform;
             quickSlots = HUDContent.Find("QuickSlots").transform;
             compass = HUDContent.Find("DepthCompass").transform;
             barsPanel = HUDContent.Find("BarsPanel").transform;
-            seamothHUD.SetParent(vehicleHUD.transform, false);//move the vehicle specific HUD elements to the new vehicle HUD
+            seamothHUD.SetParent(vehicleCanvas.transform, false);//move the vehicle specific HUD elements to the new vehicle Canvas
             seamothHUD.localPosition = seamothHUDPos;
-            exosuitHUD.SetParent(vehicleHUD.transform, false);
+            exosuitHUD.SetParent(vehicleCanvas.transform, false);
             exosuitHUD.localPosition = exosuitHUDPos;
-            vehicleHUD.SetActive(false);
+            vehicleCanvas.SetActive(false);
         }
 
         void Update()
@@ -60,20 +58,20 @@ namespace VREnhancements
                 //TODO: Probably better to just do this attachment in the Player.Start
                 if (!vehicleHUDAttached)
                 {
-                    //attach vehicle hud to the player body since it doesn't move when piloting. Didn't attach to vehicle since hud moved around too much when operating the exosuit.
-                    vehicleHUD.transform.SetParent(MainCameraControl.main.viewModel, false);
+                    //attach vehicle canvas to the player body since it doesn't move when piloting. Didn't attach to vehicle since hud moved around too much when operating the exosuit.
+                    vehicleCanvas.transform.SetParent(MainCameraControl.main.viewModel, false);
                     vehicleHUDAttached = true;
                 }
                 if (player.inSeamoth || player.inExosuit)
                 {
-                    if(!vehicleHUD.activeInHierarchy)
+                    if(!vehicleCanvas.activeInHierarchy)
                     {
                         originalCompassPos = compass.localPosition;
                         originalQuickSlotsPos = quickSlots.localPosition;
                         originalBarsPanelPos = barsPanel.localPosition;
-                        compass.SetParent(vehicleHUD.transform, false);
-                        quickSlots.SetParent(vehicleHUD.transform, false);
-                        barsPanel.SetParent(vehicleHUD.transform, false);
+                        compass.SetParent(vehicleCanvas.transform, false);
+                        quickSlots.SetParent(vehicleCanvas.transform, false);
+                        barsPanel.SetParent(vehicleCanvas.transform, false);
                         if (player.inSeamoth)
                         {
                             compass.localPosition = seamothCompassPos;
@@ -86,10 +84,10 @@ namespace VREnhancements
                             quickSlots.localPosition = exosuitQuickSlotsPos;
                             barsPanel.localPosition = exosuitBarsPanelPos;
                         }
-                        vehicleHUD.SetActive(true);
+                        vehicleCanvas.SetActive(true);
                     }
                 }
-                else if(vehicleHUD.activeInHierarchy)//if not in seamoth or exosuit but vehicleHUD is active then move elements back to the normal HUD and disable Vehicle HUD
+                else if(vehicleCanvas.activeInHierarchy)//if not in seamoth or exosuit but vehicleCanvas is active then move elements back to the normal HUD and disable vehicleCanvas
                 {
                     compass.SetParent(HUDContent, false);
                     compass.localPosition = originalCompassPos;
@@ -97,7 +95,7 @@ namespace VREnhancements
                     quickSlots.localPosition = originalQuickSlotsPos;
                     barsPanel.SetParent(HUDContent, false);
                     barsPanel.localPosition = originalBarsPanelPos;
-                    vehicleHUD.SetActive(false);
+                    vehicleCanvas.SetActive(false);
                 }
             }
         }
