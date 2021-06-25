@@ -199,9 +199,8 @@ namespace VREnhancements
                         UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - fadeInStart) / fadeRange, 0, 1) * AdditionalVROptions.HUD_Alpha);
                     else
                         UpdateHUDOpacity(0);
-                }
-                else
-                    UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);//TODO: Fix this. should not be setting opacity every fame
+                }//setting opacity back to HUDAlpha in PDA.Close Postfix
+                
                 Vector3 lookAtTarget;
                 if (player.inSeamoth || player.inExosuit)
                 {
@@ -218,6 +217,16 @@ namespace VREnhancements
                 barsPanel.rotation = Quaternion.LookRotation(barsPanel.position - lookAtTarget, player.transform.up);
             }
         }
+
+        [HarmonyPatch(typeof(PDA), nameof(PDA.Close))]
+        class PDA_Close_Patch
+        {
+            static void Postfix()
+            {
+                UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
+            }
+        }
+
 
         [HarmonyPatch(typeof(QuickSlots), nameof(QuickSlots.NotifySelect))]
         class QuickSlots_NotifySelect_Patch
