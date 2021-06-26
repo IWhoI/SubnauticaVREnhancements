@@ -17,8 +17,19 @@ namespace VREnhancements
             private static float pdaCloseTimer = 0;
             private static bool pdaIsClosing = false;
             private static float pdaCloseDelay = 1f;
+            private static string lastClipName = "";
             static void Postfix(MainCameraControl __instance)
             {
+                //when the pda is opened the viewmodel is moved forward but even when the state is closed, it is kept foward for a short while which was causing the neck to 
+                //show if I also moved the model forward at the same time. So I maintain my own closing state with pdaIsClosing and only move the model forward after pdaCloseDelay.
+                //There may be a better way to solve this so someone please fix it.
+                //I think the shifting of the model happens because of local position changes in the actual 3D model since the offset values didn't change during the model shift.
+                string clipName = Player.main.playerAnimator.GetCurrentAnimatorClipInfo(0)[0].clip.name;
+                /*if (clipName != lastClipName)
+                {
+                    ErrorMessage.AddMessage("clipname: " + clipName);
+                    lastClipName = clipName;
+                }*/
                 Transform forwardRefTransform = __instance.GetComponentInParent<PlayerController>().forwardReference;//forwardReference is the main camera transform
                 if (pdaIsClosing && pdaCloseTimer < pdaCloseDelay)
                 {
@@ -33,10 +44,6 @@ namespace VREnhancements
                 {
                     pdaIsClosing = true;
                 }
-                //when the pda is opened the viewmodel is moved forward but even when the state is closed, it is kept foward for a short while which was causing the neck to 
-                //show if I also moved the model forward at the same time. So I maintain my own closing state with pdaIsClosing and only move the model forward after pdaCloseDelay.
-                //There may be a better way to solve this so someone please fix it.
-                //I think the shifting of the model happens because of local position changes in the actual 3D model since the offset values didn't change during the model shift.
                 if (Player.main.GetPDA().state == PDA.State.Closed && !pdaIsClosing)
                 {
                     if (Player.main.motorMode == Player.MotorMode.Seaglide)
@@ -46,7 +53,6 @@ namespace VREnhancements
                     else if (Player.main.transform.position.y < Ocean.main.GetOceanLevel() + 1f && !Player.main.IsInside() && !Player.main.precursorOutOfWater)
                     {
                         //use the viewModel transform instead of forwardRef since the player body pitches while swimming.
-                        string clipName = Player.main.playerAnimator.GetCurrentAnimatorClipInfo(0)[0].clip.name;
                         if (clipName == "Back_lean" || clipName == "view_surface_swim_forward")
                             __instance.viewModel.transform.localPosition = __instance.viewModel.transform.parent.worldToLocalMatrix.MultiplyPoint(forwardRefTransform.position + (__instance.viewModel.transform.up * (swimYOffset - 0.1f)) + __instance.viewModel.transform.forward * (swimZOffset - 0.1f));
                         else
