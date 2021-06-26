@@ -1,6 +1,10 @@
 # Subnautica VR Enhancements Mod
 This mod fixes the majority of issues with Subnautica in VR as shown here [https://www.youtube.com/watch?v=aTnEtO-YqMg](https://www.youtube.com/watch?v=aTnEtO-YqMg). You can download the mod [here](https://www.nexusmods.com/subnautica/mods/173?tab=description). The mod started as direct edits to the Assembly-CSharp.dll for the game to fix problems that were annoying me in VR and I never intended for it to be a mod so the code will not be as clean and structured as it could be. A lot of the code is from Googling and following patterns of other mods so I'm sure better programmers will have better ways to accomplish some of the things that the mod does. The code also contains commented out experimental stuff.
 
+## Changes in Version 2.0.0
+- Major changes to the HUD and other User Interface elements.
+- Fixed a bug that sometimes caused the player's body to jitter while standing still.
+
 ## Changes in Version 1.8.2
 - The Sunbeam timer is now visible in VR. I made the timer smaller and the background transparent to make it less obtrusive in VR.
 (The sad thing about this is that I only played Subnautica in VR and never even knew about this timer problem so I missed that whole event in the story.)
