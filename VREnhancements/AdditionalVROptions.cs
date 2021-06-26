@@ -8,6 +8,7 @@ namespace VREnhancements
 {
     class AdditionalVROptions
     {
+        static int generalTabIndex = -1;
         public static bool dynamicHUD = false;
         public static float subtitleHeight = 40;
         public static float subtitleScale = 1;
@@ -15,7 +16,17 @@ namespace VREnhancements
         public static float HUD_Alpha = 1;
         public static float HUD_Distance = 1;
         public static float HUD_Scale = 1;
-        static int VRETab;
+
+        [HarmonyPatch(typeof(uGUI_TabbedControlsPanel), nameof(uGUI_TabbedControlsPanel.AddTab))]
+        class AddTab_Patch
+        {
+            static void Postfix(int __result, string label)
+            {
+                //get the tabIndex of the general tab to be able to use it in  AddGeneralTab_Postfix
+                if (label.Equals("General"))
+                    generalTabIndex = __result;
+            }
+        }
 
         [HarmonyPatch(typeof(uGUI_OptionsPanel), nameof(uGUI_OptionsPanel.AddTabs))]
         class GeneralTab_VROptionsPatch
@@ -23,57 +34,55 @@ namespace VREnhancements
             //TODO: Create a new tab instead of using general for all the additional VR options and if possible move existing VR to the same tab
             static void Postfix(uGUI_OptionsPanel __instance)
             {
-                VRETab = __instance.AddTab("VR Mod Options");
-                __instance.AddHeading(VRETab, "General Options");
-                __instance.AddToggleOption(VRETab, "Enable VR Animations", GameOptions.enableVrAnimations, delegate (bool v)
+                __instance.AddHeading(generalTabIndex, "General VR Options");
+                __instance.AddToggleOption(generalTabIndex, "Enable VR Animations", GameOptions.enableVrAnimations, delegate (bool v)
                 {
                     GameOptions.enableVrAnimations = v;
                     //playerAnimator vr_active is normally set in the Start function of Player so we need to update it if option changed during gameplay
                     if (Player.main)
                         Player.main.playerAnimator.SetBool("vr_active", !v);
                 });
-                __instance.AddSliderOption(VRETab, "Walk Speed(Default: 60%)", VROptions.groundMoveScale * 100, 50, 100, 60, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "Walk Speed(Default: 60%)", VROptions.groundMoveScale * 100, 50, 100, 60, delegate (float v)
                 {
                     VROptions.groundMoveScale = v / 100f;
                 });
-                __instance.AddHeading(VRETab, "User Interface Options");
-                __instance.AddSliderOption(VRETab, "Subtitle Height", subtitleHeight, 20, 75, 60, delegate (float v)
+                __instance.AddHeading(generalTabIndex, "VR User Interface Options");
+                __instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleHeight, 20, 75, 60, delegate (float v)
                 {
                     subtitleHeight = v;
                     UIElementsFixes.SetSubtitleHeight(subtitleHeight);
                 });
-                __instance.AddSliderOption(VRETab, "Subtitle Scale", subtitleScale * 100, 50, 150, 100, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "Subtitle Scale", subtitleScale * 100, 50, 150, 100, delegate (float v)
                 {
                     subtitleScale = v / 100;
                     UIElementsFixes.SetSubtitleScale(subtitleScale);
                 });
-                __instance.AddSliderOption(VRETab, "PDA Distance", PDA_Distance * 100f, 25, 40, 40, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "PDA Distance", PDA_Distance * 100f, 25, 40, 40, delegate (float v)
                 {
                     PDA_Distance = v / 100f;
                 });
-                __instance.AddToggleOption(VRETab, "Dynamic HUD", dynamicHUD, delegate (bool v)
+                __instance.AddToggleOption(generalTabIndex, "Dynamic HUD", dynamicHUD, delegate (bool v)
                 {
                     dynamicHUD = v;
                     UIElementsFixes.SetDynamicHUD(v);
 
                 });
-                __instance.AddSliderOption(VRETab, "HUD Opacity", HUD_Alpha * 100f, 40, 100, 100, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "HUD Opacity", HUD_Alpha * 100f, 40, 100, 100, delegate (float v)
                 {
                     HUD_Alpha = v / 100f;
                     UIElementsFixes.UpdateHUDOpacity(HUD_Alpha);
                 });
-                __instance.AddSliderOption(VRETab, "HUD Distance", HUD_Distance / 0.5f, 2, 4, 3, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "HUD Distance", HUD_Distance / 0.5f, 2, 4, 3, delegate (float v)
                 {
                     HUD_Distance = v * 0.5f;
                     UIElementsFixes.UpdateHUDDistance(HUD_Distance);
                 });
-                __instance.AddSliderOption(VRETab, "HUD Scale", HUD_Scale / 0.5f, 1, 4, 2, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 1, 4, 2, delegate (float v)
                 {
                     HUD_Scale = v * 0.5f;
                     UIElementsFixes.UpdateHUDScale(HUD_Scale);
                 });
             }
-
         }
 
         [HarmonyPatch(typeof(IngameMenu), nameof(IngameMenu.Awake))]
@@ -111,7 +120,6 @@ namespace VREnhancements
         {
             static void Postfix(GameSettings.ISerializer serializer)
             {
-                //TODO: Serialize all additional options
                 GameOptions.enableVrAnimations = serializer.Serialize("VR/EnableVRAnimations", GameOptions.enableVrAnimations);
                 VROptions.groundMoveScale = serializer.Serialize("VR/GroundMoveScale", VROptions.groundMoveScale);
                 subtitleScale = serializer.Serialize("VR/SubtitleScale", subtitleScale);
@@ -121,7 +129,6 @@ namespace VREnhancements
                 HUD_Distance = serializer.Serialize("VR/HUD_Distance", HUD_Distance);
                 HUD_Scale = serializer.Serialize("VR/HUD_Scale", HUD_Scale);
                 HUD_Alpha = serializer.Serialize("VR/HUD_Alpha", HUD_Alpha);
-                Debug.Log("VR Enhancements Settings Serialized");
             }
         }
 
