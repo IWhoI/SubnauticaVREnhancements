@@ -5,68 +5,36 @@ namespace VREnhancements
 {
     class CameraFixes
     {
+        static Transform forwardRefTransform;
+        static Transform headRig;
         [HarmonyPatch(typeof(MainCameraControl), nameof(MainCameraControl.Update))]
         class MCC_Update_Patch
         {
-            private static float defaultZOffset = 0.17f;//default player model Z offset from camera
-            private static float defaultYOffset = 0.0f;
-            private static float seaglideZOffset = 0.1f;//player model Z offset when piloting the seaglide
-            private static float seaglideYOffset = -0.15f;
-            private static float swimZOffset = 0.08f;//player model Z offset when swimming
-            private static float swimYOffset = -0.02f;
-            private static float pdaCloseTimer = 0;
-            private static bool pdaIsClosing = false;
-            private static float pdaCloseDelay = 1f;
-            private static string lastClipName = "";
+            static float yOffset;
             static void Postfix(MainCameraControl __instance)
             {
-                //when the pda is opened the viewmodel is moved forward but even when the state is closed, it is kept foward for a short while which was causing the neck to 
-                //show if I also moved the model forward at the same time. So I maintain my own closing state with pdaIsClosing and only move the model forward after pdaCloseDelay.
-                //There may be a better way to solve this so someone please fix it.
-                //I think the shifting of the model happens because of local position changes in the actual 3D model since the offset values didn't change during the model shift.
-                string clipName = Player.main.playerAnimator.GetCurrentAnimatorClipInfo(0)[0].clip.name;
-                /*if (clipName != lastClipName)
+                if (!__instance.cinematicMode && Player.main.motorMode != Player.MotorMode.Vehicle)
                 {
-                    ErrorMessage.AddMessage("clipname: " + clipName);
-                    lastClipName = clipName;
-                }*/
-                Transform forwardRefTransform = __instance.GetComponentInParent<PlayerController>().forwardReference;//forwardReference is the main camera transform
-                if (pdaIsClosing && pdaCloseTimer < pdaCloseDelay)
-                {
-                    pdaCloseTimer += Time.deltaTime;
-                }
-                else if (pdaCloseTimer >= pdaCloseDelay || (pdaIsClosing && Player.main.GetPDA().state == PDA.State.Opened))
-                {
-                    pdaIsClosing = false;
-                    pdaCloseTimer = 0;
-                }
-                if (Player.main.GetPDA().state == PDA.State.Closing)
-                {
-                    pdaIsClosing = true;
-                }
-                if (Player.main.GetPDA().state == PDA.State.Closed && !pdaIsClosing)
-                {
+                    //offset the body/seaglide a little more to improve visibility while piloting the seaglide
                     if (Player.main.motorMode == Player.MotorMode.Seaglide)
-                    {
-                        __instance.viewModel.transform.localPosition = __instance.viewModel.transform.parent.worldToLocalMatrix.MultiplyPoint(forwardRefTransform.position + (forwardRefTransform.up * seaglideYOffset) + forwardRefTransform.forward * seaglideZOffset);
-                    }
-                    else if (Player.main.transform.position.y < Ocean.main.GetOceanLevel() + 1f && !Player.main.IsInside() && !Player.main.precursorOutOfWater)
-                    {
-                        //use the viewModel transform instead of forwardRef since the player body pitches while swimming.
-                        if (clipName == "Back_lean" || clipName == "view_surface_swim_forward")
-                            __instance.viewModel.transform.localPosition = __instance.viewModel.transform.parent.worldToLocalMatrix.MultiplyPoint(forwardRefTransform.position + (__instance.viewModel.transform.up * (swimYOffset - 0.1f)) + __instance.viewModel.transform.forward * (swimZOffset - 0.1f));
-                        else
-                            __instance.viewModel.transform.localPosition = __instance.viewModel.transform.parent.worldToLocalMatrix.MultiplyPoint(forwardRefTransform.position + (__instance.viewModel.transform.up * swimYOffset) + __instance.viewModel.transform.forward * swimZOffset);
-                    }
-                    else if (!__instance.cinematicMode && Player.main.motorMode != Player.MotorMode.Vehicle && Player.main.motorMode != Player.MotorMode.Seaglide)
-                    {
-                        if (Player.main.movementSpeed < 1)
-                            __instance.viewModel.transform.localPosition = __instance.viewModel.transform.parent.worldToLocalMatrix.MultiplyPoint(forwardRefTransform.position + Vector3.up * defaultYOffset + new Vector3(forwardRefTransform.forward.x, 0f, forwardRefTransform.forward.z).normalized * defaultZOffset);
-                        else
-                            __instance.viewModel.transform.localPosition = __instance.viewModel.transform.parent.worldToLocalMatrix.MultiplyPoint(forwardRefTransform.position + Vector3.up * defaultYOffset + new Vector3(forwardRefTransform.forward.x, 0f, forwardRefTransform.forward.z).normalized * (defaultZOffset - 0.1f));
-                    }
+                        yOffset = -0.18f;
+                    else
+                        yOffset = -0.08f;
+                    //move the body so that the head bone always tracks the headset/camera position
+                    __instance.viewModel.transform.localPosition = __instance.viewModel.transform.parent.worldToLocalMatrix.MultiplyPoint(forwardRefTransform.position - (headRig.position - __instance.viewModel.transform.position) + forwardRefTransform.up * yOffset + forwardRefTransform.forward * -0.02f);
                 }
             }
+
+        }
+        [HarmonyPatch(typeof(MainCameraControl), nameof(MainCameraControl.Awake))]
+        class MCC_Awake_Patch
+        {
+            static void Postfix(MainCameraControl __instance)
+            {
+                forwardRefTransform = MainCamera.camera.transform;
+                headRig = __instance.viewModel.transform.Find("player_view/export_skeleton/head_rig");
+            }
+                
         }
 
         [HarmonyPatch(typeof(MainGameController), nameof(MainGameController.ResetOrientation))]
