@@ -14,14 +14,13 @@ namespace VREnhancements
             //Should probably check if using Destroy instead of DestroyImmediate would work since it is supposed to be safer.
             static void Postfix(SNCameraRoot __instance)
             {
-                GameObject mainCamera = __instance.transform.Find("MainCamera").gameObject;
-                if (mainCamera != null)
+                if (SNCameraRoot.main.mainCam)
                 {
-                    //UnityEngine.Object.DestroyImmediate(__instance.gameObject.GetComponent<AudioListener>());
-                    //UnityEngine.Object.DestroyImmediate(__instance.gameObject.GetComponent<StudioListener>());
-                    UnityEngine.Object.DestroyImmediate(mainCamera.GetComponent<AudioListener>());
-                    UnityEngine.Object.DestroyImmediate(mainCamera.GetComponent<StudioListener>());
-                    mainCamera.AddComponent<StudioListener>();
+                    //remove the audio listeners from the PlayerCameras object that does not rotate with the VR headset
+                    Object.DestroyImmediate(__instance.gameObject.GetComponent<AudioListener>());
+                    Object.DestroyImmediate(__instance.gameObject.GetComponent<StudioListener>());
+                    //add new listener to the main camera that does rotate with the VR headset
+                    SNCameraRoot.main.mainCam.gameObject.AddComponent<StudioListener>();
                 }
             }
         }

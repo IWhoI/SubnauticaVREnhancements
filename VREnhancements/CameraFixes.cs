@@ -36,6 +36,19 @@ namespace VREnhancements
             }
                 
         }
+        /*TODO: Check how difficult it is to fix the Seaglide and PDA problems with this attempt to decouple movement from head direction
+         * [HarmonyPatch(MethodType.Getter)]
+        [HarmonyPatch(typeof(PlayerController), nameof(PlayerController.forwardReference))]
+        class PlayerCon_fwdRef_Patch
+        {
+            static void Postfix(PlayerController __instance, ref Transform __result)
+            {
+                Transform temp = new GameObject().transform;
+                temp.rotation = Quaternion.Euler(__result.rotation.eulerAngles.x, MainCameraControl.main.transform.rotation.eulerAngles.y, 0);
+                __result = temp;
+            }
+
+        }*/
 
         [HarmonyPatch(typeof(MainGameController), nameof(MainGameController.ResetOrientation))]
         class MGC_ResetOrientation_Patch

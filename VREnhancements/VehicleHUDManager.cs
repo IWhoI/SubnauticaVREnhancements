@@ -27,7 +27,7 @@ namespace VREnhancements
 
         void Awake()
         {
-            //create a new canvas worldspace canvas for vehicles
+            //create a new worldspace canvas for vehicles
             vehicleCanvas = new GameObject("VRVehicleCanvas");
             DontDestroyOnLoad(vehicleCanvas);
             vehicleCanvas.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
