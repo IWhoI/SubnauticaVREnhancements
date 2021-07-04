@@ -24,9 +24,6 @@ namespace VREnhancements
         static float lastOxygen = -1;
         static float lastFood = -1;
         static float lastWater = -1;
-        static Transform mainMenuUICam;
-        static Transform mainMenu;
-
 
         public static void SetDynamicHUD(bool enabled)
         {
@@ -325,27 +322,6 @@ namespace VREnhancements
             }
         }
 
-        [HarmonyPatch(typeof(uGUI_MainMenu), nameof(uGUI_MainMenu.Awake))]
-        class MM_Awake_Patch
-        {
-            static void Postfix(uGUI_MainMenu __instance)
-            {
-                mainMenuUICam = GameObject.Find("Cameras/UI Camera").transform;
-                mainMenu = __instance.transform.Find("Panel/MainMenu");
-                //__instance.transform.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 385);
-            }
-        }
-        [HarmonyPatch(typeof(uGUI_MainMenu), nameof(uGUI_MainMenu.Update))]
-        class MM_Update_Patch
-        {
-            static void Postfix(uGUI_MainMenu __instance)
-            {
-                //mainMenu.transform.position = mainMenuUICam.position + (mainMenuUICam.forward * 1.5f);
-                //keep the main menu tilted towards the camera.
-                mainMenu.transform.root.rotation = Quaternion.LookRotation(mainMenu.position - new Vector3(mainMenuUICam.position.x,mainMenuUICam.position.y, mainMenu.position.z));
-            }
-        }
-
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.LateUpdate))]
         class HR_LateUpdate_Patch
         {
@@ -422,6 +398,89 @@ namespace VREnhancements
                 {
                     cursorCanvas.sortingLayerID = lastRaycastResult.sortingLayer;//put the cursor on the same layer as whatever was hit by the cursor raycast.
                 }
+            }
+        }
+
+        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.Init))]
+        class SceneLoading_Init_Patch
+        {
+            /*
+            Loading--[RectTransform | uGUI_SceneLoading | CanvasGroup | ]
+            |	LoadingScreen--[RectTransform | CanvasRenderer | Image | uGUI_Fader | ]
+            |	|	LoadingArtwork--[RectTransform | CanvasRenderer | Image | AspectRatioFitter | ]
+            |	|	LoadingText--[RectTransform | CanvasRenderer | Text | uGUI_TextFade | ]
+            |	|	Logo--[RectTransform | CanvasRenderer | uGUI_Logo | ]
+            */
+            static void Postfix(uGUI_SceneLoading __instance)
+            {
+                Image loadingArtwork = null;
+                RectTransform textRect = null;
+                RectTransform logoRect = null;
+                loadingArtwork = __instance.loadingBackground.transform.Find("LoadingArtwork").GetComponent<Image>();
+                textRect = __instance.loadingText.gameObject.GetComponent<RectTransform>();
+                logoRect = __instance.loadingBackground.transform.Find("Logo").GetComponent<RectTransform>();
+                Vector2 midCenter = new Vector2(0.5f, 0.5f);
+                if (loadingArtwork != null && textRect != null && logoRect != null)
+                {
+                    //remove background image and set background to black
+                    loadingArtwork.sprite = null;
+                    loadingArtwork.color = Color.black;
+                    loadingArtwork.GetComponent<RectTransform>().localScale = Vector3.one * 2;//temporary fix for when hud distance is increased
+                    //center the logo
+                    logoRect.anchorMin = midCenter;
+                    logoRect.anchorMax = midCenter;
+                    logoRect.pivot = midCenter;
+                    logoRect.anchoredPosition = Vector2.zero;
+                    //center text and offset below logo
+                    textRect.anchorMin = midCenter;
+                    textRect.anchorMax = midCenter;
+                    textRect.pivot = midCenter;
+                    textRect.anchoredPosition = new Vector2(0f, -200f);
+                    textRect.sizeDelta = new Vector2(400f, 100f);
+                    textRect.gameObject.GetComponent<Text>().alignment = TextAnchor.MiddleCenter;
+                }
+            }
+        }
+        static Transform screenCanvas;
+        static Transform overlayCanvas;
+        static Transform mainMenuUICam;
+        static Transform mainMenu;
+        [HarmonyPatch(typeof(uGUI_MainMenu), nameof(uGUI_MainMenu.Awake))]
+        class MM_Awake_Patch
+        {
+            static void Postfix(uGUI_MainMenu __instance)
+            {
+                mainMenuUICam = GameObject.Find("Cameras/UI Camera").transform;
+                mainMenu = __instance.transform.Find("Panel/MainMenu");
+                screenCanvas = GameObject.Find("ScreenCanvas").transform;
+                overlayCanvas = GameObject.Find("OverlayCanvas").transform;
+            }
+        }
+
+        [HarmonyPatch(typeof(uGUI_MainMenu), nameof(uGUI_MainMenu.Update))]
+        class MM_Update_Patch
+        {
+            static void Postfix(uGUI_MainMenu __instance)
+            {
+                //mainMenu.transform.position = mainMenuUICam.position + (mainMenuUICam.forward * 1.5f);
+                //keep the main menu tilted towards the camera.
+                mainMenu.transform.root.rotation = Quaternion.LookRotation(mainMenu.position - new Vector3(mainMenuUICam.position.x, mainMenuUICam.position.y, mainMenu.position.z));
+                screenCanvas.localPosition = __instance.transform.localPosition;
+                screenCanvas.position = __instance.transform.position;
+                screenCanvas.rotation = __instance.transform.rotation;
+                overlayCanvas.localPosition = __instance.transform.localPosition;
+                overlayCanvas.position = __instance.transform.position;
+                overlayCanvas.rotation = __instance.transform.rotation;
+
+            }
+        }
+        [HarmonyPatch(typeof(uGUI_BuildWatermark), nameof(uGUI_BuildWatermark.UpdateText))]
+        class BWM_UpdateText_Patch
+        {
+            static void Postfix(uGUI_BuildWatermark __instance)
+            {
+                //make the version watermark more visible
+               __instance.GetComponent<Text>().color = Vector4.one;
             }
         }
     }
