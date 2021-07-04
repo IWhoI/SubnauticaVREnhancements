@@ -42,8 +42,7 @@ namespace VREnhancements
         {
             if (sceneHUD)
             {
-                if (sceneHUD.GetComponent<CanvasGroup>())
-                    sceneHUD.GetComponent<CanvasGroup>().alpha = alpha;
+                sceneHUD.GetComponent<CanvasGroup>().alpha = alpha;
                 if (VehicleHUDManager.vehicleCanvas)
                     VehicleHUDManager.vehicleCanvas.GetComponent<CanvasGroup>().alpha = alpha;
                 if(sunbeamCountdown)
@@ -75,7 +74,8 @@ namespace VREnhancements
 
         public static void InitHUD()
         {
-            sceneHUD.gameObject.AddComponent<CanvasGroup>();//add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
+            if (!sceneHUD.gameObject.GetComponent<CanvasGroup>())
+                sceneHUD.gameObject.AddComponent<CanvasGroup>();//add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
             UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             UpdateHUDScale(AdditionalVROptions.HUD_Scale);
@@ -151,15 +151,6 @@ namespace VREnhancements
             }
         }
 
-        [HarmonyPatch(typeof(Player), nameof(Player.Awake))]
-        class Player_Awake_Patch
-        {
-            static void Postfix()
-            {
-
-            }
-        }
-
         [HarmonyPatch(typeof(Player), nameof(Player.Update))]
         class Player_Update_Patch
         {
@@ -227,7 +218,7 @@ namespace VREnhancements
             }
         }
 
-
+        
         [HarmonyPatch(typeof(QuickSlots), nameof(QuickSlots.NotifySelect))]
         class QuickSlots_NotifySelect_Patch
         {
