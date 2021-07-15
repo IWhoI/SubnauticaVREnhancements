@@ -1,10 +1,8 @@
 ﻿using HarmonyLib;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 using UnityEngine.XR;
-using UWE;
-using System.Collections.Generic;
 
 namespace VREnhancements
 {
@@ -40,12 +38,12 @@ namespace VREnhancements
             if (sceneHUD)
             {
                 sceneHUD.GetComponent<CanvasGroup>().alpha = alpha;
-                if (VehicleHUDManager.vehicleCanvas)
+                if(VehicleHUDManager.vehicleCanvas)
                     VehicleHUDManager.vehicleCanvas.GetComponent<CanvasGroup>().alpha = alpha;
                 if(sunbeamCountdown)
                     sunbeamCountdown.Find("Background").GetComponent<CanvasRenderer>().SetAlpha(0f);//make sure the background remains hidden
-                //to keep the reticle always fully visible
-                if (HandReticle.main && HandReticle.main.GetComponent<CanvasGroup>())
+                //make sure the reticle isn't affected by HUD alpha setting
+                if(HandReticle.main && HandReticle.main.GetComponent<CanvasGroup>())
                     HandReticle.main.GetComponent<CanvasGroup>().alpha = 0.8f;
             }
         }
@@ -93,9 +91,6 @@ namespace VREnhancements
             }
             if (barsPanel)
                 barsPanel.localPosition = new Vector3(-300, -260, 0);
-            //fix certain components that are no longer blocking the entire fov when hud distance is further back
-            uGUI_PlayerDeath.main.blackOverlay.gameObject.GetComponent<RectTransform>().localScale = Vector3.one * 2;
-            uGUI_PlayerSleep.main.blackOverlay.gameObject.GetComponent<RectTransform>().localScale = Vector3.one * 2;
         }
         public static void SetSubtitleHeight(float percentage)
         {
@@ -104,6 +99,23 @@ namespace VREnhancements
         public static void SetSubtitleScale(float scale)
         {
             Subtitles.main.popup.GetComponent<RectTransform>().localScale = Vector3.one * scale;
+        }
+
+        [HarmonyPatch(typeof(uGUI_PlayerDeath), nameof(uGUI_PlayerDeath.Start))]
+        class uGUI_PlayerDeath_Start_Patch
+        {
+            static void Postfix(uGUI_PlayerDeath __instance)
+            {
+                __instance.blackOverlay.gameObject.GetComponent<RectTransform>().localScale = Vector3.one * 2;
+            }
+        }
+        [HarmonyPatch(typeof(uGUI_PlayerSleep), nameof(uGUI_PlayerSleep.Start))]
+        class uGUI_PlayerSleep_Start_Patch
+        {
+            static void Postfix(uGUI_PlayerSleep __instance)
+            {
+                __instance.blackOverlay.gameObject.GetComponent<RectTransform>().localScale = Vector3.one * 2;
+            }
         }
 
         [HarmonyPatch(typeof(Seaglide), nameof(Seaglide.OnDraw))]
@@ -128,9 +140,9 @@ namespace VREnhancements
         {
             static void Postfix()
             {
-                //TODO: Figure out why the Screen Canvas distance gets reset to 1 when loading a save. 
-                //initializing hud settings at the start of loading a save to make sure it doesn't get reset to 1
-                InitHUD();
+                //TODO: Figure out why the Screen Canvas distance gets reset to 1 when loading a save. (Resets because the UI camera changes during loading)
+                //resetting distance at the start of loading a save to make sure it doesn't get reset to 1
+                UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             }
         }
 
@@ -145,6 +157,7 @@ namespace VREnhancements
                 quickSlots = __instance.transform.Find("Content/QuickSlots");
                 compass = __instance.transform.Find("Content/DepthCompass");
                 __instance.gameObject.AddComponent<VehicleHUDManager>();
+                InitHUD();
             }
         }
 
@@ -400,25 +413,45 @@ namespace VREnhancements
                 }
             }
         }
-
-        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.Init))]
-        class SceneLoading_Init_Patch
+        /*
+        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.AnimateLoadingText))]
+        class AnimatedText_Patch
         {
-            /*
-            Loading--[RectTransform | uGUI_SceneLoading | CanvasGroup | ]
-            |	LoadingScreen--[RectTransform | CanvasRenderer | Image | uGUI_Fader | ]
-            |	|	LoadingArtwork--[RectTransform | CanvasRenderer | Image | AspectRatioFitter | ]
-            |	|	LoadingText--[RectTransform | CanvasRenderer | Text | uGUI_TextFade | ]
-            |	|	Logo--[RectTransform | CanvasRenderer | uGUI_Logo | ]
-            */
+            static void Postfix(uGUI_SceneLoading __instance)
+            {   
+                //TODO: Don't do a find here
+                GameObject mainCam = GameObject.Find("UI Camera");
+                if(!mainCam)
+                    mainCam = GameObject.Find("MainCamera (UI)");
+                GameObject loadingCanvas = GameObject.Find("VR Loading Canvas");
+                if (mainCam)
+                {
+                    //Debug.Log("MAIN CAM NAME: " + mainCam.name);
+                    loadingCanvas.transform.position = mainCam.transform.position + mainCam.transform.forward * 2;
+                    loadingCanvas.transform.LookAt(mainCam.transform.position);
+                }
+            }
+        }*/
+
+        /*[HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.End))]
+        class SceneLoading_End_Patch
+        {
             static void Postfix(uGUI_SceneLoading __instance)
             {
-                Image loadingArtwork = null;
-                RectTransform textRect = null;
-                RectTransform logoRect = null;
-                loadingArtwork = __instance.loadingBackground.transform.Find("LoadingArtwork").GetComponent<Image>();
-                textRect = __instance.loadingText.gameObject.GetComponent<RectTransform>();
-                logoRect = __instance.loadingBackground.transform.Find("Logo").GetComponent<RectTransform>();
+                if (!__instance.IsLoading)
+                    __instance.CancelInvoke();//Fixes bug in original game code. Stop calling AnimateLoadingText
+            }
+        }*/
+
+        [HarmonyPatch(typeof(uGUI), nameof(uGUI.Awake))]
+        class LoadingScreen_Patch
+        {
+            static GameObject loadingCanvas;
+            static void Postfix(uGUI __instance)
+            {
+                Image loadingArtwork = __instance.loading.loadingBackground.transform.Find("LoadingArtwork").GetComponent<Image>();
+                RectTransform textRect = __instance.loading.loadingText.gameObject.GetComponent<RectTransform>();
+                RectTransform logoRect = __instance.loading.loadingBackground.transform.Find("Logo").GetComponent<RectTransform>();
                 Vector2 midCenter = new Vector2(0.5f, 0.5f);
                 if (loadingArtwork != null && textRect != null && logoRect != null)
                 {
@@ -439,6 +472,24 @@ namespace VREnhancements
                     textRect.sizeDelta = new Vector2(400f, 100f);
                     textRect.gameObject.GetComponent<Text>().alignment = TextAnchor.MiddleCenter;
                 }
+                /*if(!loadingCanvas)
+                {
+                    loadingCanvas = new GameObject("VR Loading Canvas");
+                    loadingCanvas.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+                    loadingCanvas.layer = LayerMask.NameToLayer("UI");
+                    Transform mainCam = GameObject.Find("UI Camera").transform;
+                    if (mainCam)
+                    {
+                        Debug.Log("MAIN CAM NAME: " + mainCam.name);
+                        loadingCanvas.transform.position = mainCam.position + mainCam.forward * 2;
+                        loadingCanvas.transform.LookAt(mainCam.position);
+                        __instance.gameObject.transform.SetParent(loadingCanvas.transform, false);
+                        Object.DontDestroyOnLoad(loadingCanvas);
+                    }
+                    else
+                        Debug.Log("UI camera not found");
+                    
+                }*/
             }
         }
         static Transform screenCanvas;
@@ -450,7 +501,7 @@ namespace VREnhancements
         {
             static void Postfix(uGUI_MainMenu __instance)
             {
-                mainMenuUICam = GameObject.Find("Cameras/UI Camera").transform;
+                mainMenuUICam = MainCamera.camera.gameObject.transform;
                 mainMenu = __instance.transform.Find("Panel/MainMenu");
                 screenCanvas = GameObject.Find("ScreenCanvas").transform;
                 overlayCanvas = GameObject.Find("OverlayCanvas").transform;
@@ -465,6 +516,7 @@ namespace VREnhancements
                 //mainMenu.transform.position = mainMenuUICam.position + (mainMenuUICam.forward * 1.5f);
                 //keep the main menu tilted towards the camera.
                 mainMenu.transform.root.rotation = Quaternion.LookRotation(mainMenu.position - new Vector3(mainMenuUICam.position.x, mainMenuUICam.position.y, mainMenu.position.z));
+                //match screen and overlay canvas position and rotation to main menu
                 screenCanvas.localPosition = __instance.transform.localPosition;
                 screenCanvas.position = __instance.transform.position;
                 screenCanvas.rotation = __instance.transform.rotation;
@@ -480,7 +532,9 @@ namespace VREnhancements
             static void Postfix(uGUI_BuildWatermark __instance)
             {
                 //make the version watermark more visible
-               __instance.GetComponent<Text>().color = Vector4.one;
+                __instance.GetComponent<Text>().color = new Vector4(1,1,1,0.5f);
+                //TODO: fix this after moving the main menu back and scaling up or consider reparenting to main menu
+                __instance.transform.localPosition = new Vector3(500, -670, 0);
             }
         }
     }
