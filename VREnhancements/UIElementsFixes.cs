@@ -156,7 +156,7 @@ namespace VREnhancements
                 barsPanel = __instance.transform.Find("Content/BarsPanel");
                 quickSlots = __instance.transform.Find("Content/QuickSlots");
                 compass = __instance.transform.Find("Content/DepthCompass");
-                __instance.gameObject.AddComponent<VehicleHUDManager>();
+                //__instance.gameObject.AddComponent<VehicleHUDManager>();
                 InitHUD();
             }
         }
@@ -201,21 +201,13 @@ namespace VREnhancements
                     else
                         UpdateHUDOpacity(0);
                 }//setting opacity back to HUDAlpha in PDA.Close Postfix
-                
-                Vector3 lookAtTarget;
-                if (player.inSeamoth || player.inExosuit)
+                //TODO: Check if this rotation can be done outside of an update
+                if (!player.inSeamoth && !player.inExosuit)
                 {
-                    lookAtTarget = SNCameraRoot.main.mainCamera.transform.position;//this moves with the VR headset
-                    if(player.inSeamoth)
-                        VehicleHUDManager.seamothHUD.rotation = Quaternion.LookRotation(VehicleHUDManager.seamothHUD.position - lookAtTarget, player.transform.up);
-                    else
-                        VehicleHUDManager.exosuitHUD.rotation = Quaternion.LookRotation(VehicleHUDManager.exosuitHUD.position - lookAtTarget, player.transform.up);
+                    quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
+                    compass.rotation = Quaternion.LookRotation(compass.position);
+                    barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);
                 }
-                else
-                    lookAtTarget = Vector3.zero;//UI camera is at zero
-                quickSlots.rotation = Quaternion.LookRotation(quickSlots.position - lookAtTarget, player.transform.up);//used player.transform.up to prevent weird rotation when pitching the seamoth
-                compass.rotation = Quaternion.LookRotation(compass.position - lookAtTarget, player.transform.up);
-                barsPanel.rotation = Quaternion.LookRotation(barsPanel.position - lookAtTarget, player.transform.up);
             }
         }
 
