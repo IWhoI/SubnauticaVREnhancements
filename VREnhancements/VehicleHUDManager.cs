@@ -35,7 +35,9 @@ namespace VREnhancements
             canvas.sortingLayerName = "HUD";
             vehicleCanvas.AddComponent<CanvasGroup>();
             canvasScaler = vehicleCanvas.AddComponent<uGUI_CanvasScaler>();
-            canvasScaler.vrMode = uGUI_CanvasScaler.Mode.Inversed;//the canvasScaler moves elements in front of the UI camera based on the mode. Inversed moves the elements so that they look like they are attached to the set canvasScaler anchor.
+            //the canvasScaler moves elements in front of the UI camera based on the mode.
+            //In inversed mode it moves the elements so that they look like they are attached to the canvasScaler anchor from the main camera's perspective.
+            canvasScaler.vrMode = uGUI_CanvasScaler.Mode.Inversed;
             //TODO:Not that important but figure out how to get raycasts working on the new canvas so drag and drop will work on the quickslots while PDA is open in the vehicle
             //vehicleCanvas.AddComponent<uGUI_GraphicRaycaster>();
             vehicleCanvas.layer = LayerMask.NameToLayer("UI");
@@ -62,12 +64,15 @@ namespace VREnhancements
                 {
                     if(!vehicleCanvas.activeInHierarchy)
                     {
+                        //save the original HUD element positions before moving them
                         originalCompassPos = compass.localPosition;
                         originalQuickSlotsPos = quickSlots.localPosition;
                         originalBarsPanelPos = barsPanel.localPosition;
+                        //move the elements
                         compass.SetParent(vehicleCanvas.transform, false);
                         quickSlots.SetParent(vehicleCanvas.transform, false);
                         barsPanel.SetParent(vehicleCanvas.transform, false);
+                        //set custom element positions based on vehicle
                         if (player.inSeamoth)
                         {
                             compass.localPosition = seamothCompassPos;
@@ -81,19 +86,22 @@ namespace VREnhancements
                             quickSlots.localPosition = exosuitQuickSlotsPos;
                             barsPanel.localPosition = exosuitBarsPanelPos;
                         }
-                        canvasScaler.SetAnchor(SNCameraRoot.main.mainCam.transform.parent);//TODO:Make the anchor be the vehicle instead so the hud will not move with the head if I get the upper body ik working while piloting
+                        //TODO:Make the anchor be the vehicle instead so the hud will not move with the head if I get the upper body ik working while piloting
+                        canvasScaler.SetAnchor(SNCameraRoot.main.mainCam.transform.parent);
                         vehicleCanvas.SetActive(true);
                     }
+                    //using vehicleCanvas.transform.up to compensate for the rotation done by the canvas scaler in inversed mode.
                     if (player.inSeamoth)
-                        seamothHUD.rotation = Quaternion.LookRotation(seamothHUD.position,vehicleCanvas.transform.up);//using vehiclecanvas up to compensate for the rotation done by the canvas scaler in inversed mode.
+                        seamothHUD.rotation = Quaternion.LookRotation(seamothHUD.position,vehicleCanvas.transform.up);
                     else
                         exosuitHUD.rotation = Quaternion.LookRotation(exosuitHUD.position, vehicleCanvas.transform.up);
                     quickSlots.rotation = Quaternion.LookRotation(quickSlots.position, vehicleCanvas.transform.up);
                     compass.rotation = Quaternion.LookRotation(compass.position, vehicleCanvas.transform.up);
                     barsPanel.rotation = Quaternion.LookRotation(barsPanel.position, vehicleCanvas.transform.up);
                 }
-                else if(vehicleCanvas.activeInHierarchy)//if not in seamoth or exosuit but vehicleCanvas is active then move elements back to the normal HUD and disable vehicleCanvas
+                else if(vehicleCanvas.activeInHierarchy)
                 {
+                    //if not in seamoth or exosuit but vehicleCanvas is active then move elements back to the normal HUD and disable vehicleCanvas
                     compass.SetParent(HUDContent, false);
                     compass.localPosition = originalCompassPos;
                     quickSlots.SetParent(HUDContent, false);
@@ -101,6 +109,10 @@ namespace VREnhancements
                     barsPanel.SetParent(HUDContent, false);
                     barsPanel.localPosition = originalBarsPanelPos;
                     vehicleCanvas.SetActive(false);
+                    //reset the rotation to look at the UI camera at (0,0,0);
+                    quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
+                    compass.rotation = Quaternion.LookRotation(compass.position);
+                    barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);
                 }
             }
         }

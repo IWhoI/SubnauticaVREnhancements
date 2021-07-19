@@ -134,7 +134,7 @@ namespace VREnhancements
             static void Postfix(ArmsController __instance)
             { 
                 //this is a quick fix to disable translucent player body but there may be a better way to fix this since the body isn't translucent when the PDA is open
-                //TODO: Figure out how opening the PDA usually disables this.
+                //TODO: Figure out a better way to prevent the translucent body
                 foreach (SkinnedMeshRenderer renderer in __instance.GetComponentsInChildren<SkinnedMeshRenderer>(true))
                 {
                     renderer.fadeAmount = 0;

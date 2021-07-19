@@ -74,6 +74,8 @@ namespace VREnhancements
             UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             UpdateHUDScale(AdditionalVROptions.HUD_Scale);
+            //TODO: Add option for HUD element separation by adjusting the vrSafeRect values in uGUI_SafeAreaScaler
+            //vrSafeRect width value should be 1-2minx
             if (!quickSlots.GetComponent<UIFader>())
             {
                 UIFader qsFader = quickSlots.gameObject.AddComponent<UIFader>();
@@ -143,6 +145,37 @@ namespace VREnhancements
                 UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             }
         }
+        /*
+        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.AnimateLoadingText))]
+        class AnimatedText_Patch
+        {
+            static void Postfix(uGUI_SceneLoading __instance)
+            {   
+                //TODO: Don't do a find here
+                GameObject mainCam = GameObject.Find("UI Camera");
+                if(!mainCam)
+                    mainCam = GameObject.Find("MainCamera (UI)");
+                GameObject loadingCanvas = GameObject.Find("VR Loading Canvas");
+                if (mainCam)
+                {
+                    //Debug.Log("MAIN CAM NAME: " + mainCam.name);
+                    loadingCanvas.transform.position = mainCam.transform.position + mainCam.transform.forward * 2;
+                    loadingCanvas.transform.LookAt(mainCam.transform.position);
+                }
+            }
+        }*/
+
+        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.End))]
+        class SceneLoading_End_Patch
+        {
+            static void Postfix(uGUI_SceneLoading __instance)
+            {
+                VRUtil.Recenter();
+                quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
+                compass.rotation = Quaternion.LookRotation(compass.position);
+                barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);
+            }
+        }
 
         [HarmonyPatch(typeof(uGUI_SceneHUD), nameof(uGUI_SceneHUD.Awake))]
         class SceneHUD_Awake_Patch
@@ -197,14 +230,7 @@ namespace VREnhancements
                         UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - fadeInStart) / fadeRange, 0, 1) * AdditionalVROptions.HUD_Alpha);
                     else
                         UpdateHUDOpacity(0);
-                }//setting opacity back to HUDAlpha in PDA.Close Postfix
-                //TODO: Check if this rotation can be done outside of an update
-                if (!player.inSeamoth && !player.inExosuit)
-                {
-                    quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
-                    compass.rotation = Quaternion.LookRotation(compass.position);
-                    barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);
-                }
+                }//opacity is set back to HUDAlpha in PDA.Close Postfix
             }
         }
 
@@ -402,35 +428,6 @@ namespace VREnhancements
                 }
             }
         }
-        /*
-        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.AnimateLoadingText))]
-        class AnimatedText_Patch
-        {
-            static void Postfix(uGUI_SceneLoading __instance)
-            {   
-                //TODO: Don't do a find here
-                GameObject mainCam = GameObject.Find("UI Camera");
-                if(!mainCam)
-                    mainCam = GameObject.Find("MainCamera (UI)");
-                GameObject loadingCanvas = GameObject.Find("VR Loading Canvas");
-                if (mainCam)
-                {
-                    //Debug.Log("MAIN CAM NAME: " + mainCam.name);
-                    loadingCanvas.transform.position = mainCam.transform.position + mainCam.transform.forward * 2;
-                    loadingCanvas.transform.LookAt(mainCam.transform.position);
-                }
-            }
-        }*/
-
-        /*[HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.End))]
-        class SceneLoading_End_Patch
-        {
-            static void Postfix(uGUI_SceneLoading __instance)
-            {
-                if (!__instance.IsLoading)
-                    __instance.CancelInvoke();//Fixes bug in original game code. Stop calling AnimateLoadingText
-            }
-        }*/
 
         [HarmonyPatch(typeof(uGUI), nameof(uGUI.Awake))]
         class LoadingScreen_Patch
@@ -494,6 +491,7 @@ namespace VREnhancements
                 mainMenu = __instance.transform.Find("Panel/MainMenu");
                 screenCanvas = GameObject.Find("ScreenCanvas").transform;
                 overlayCanvas = GameObject.Find("OverlayCanvas").transform;
+                VRUtil.Recenter();
             }
         }
 
@@ -502,7 +500,6 @@ namespace VREnhancements
         {
             static void Postfix(uGUI_MainMenu __instance)
             {
-                //mainMenu.transform.position = mainMenuUICam.position + (mainMenuUICam.forward * 1.5f);
                 //keep the main menu tilted towards the camera.
                 mainMenu.transform.root.rotation = Quaternion.LookRotation(mainMenu.position - new Vector3(mainMenuUICam.position.x, mainMenuUICam.position.y, mainMenu.position.z));
                 //match screen and overlay canvas position and rotation to main menu
@@ -512,6 +509,9 @@ namespace VREnhancements
                 overlayCanvas.localPosition = __instance.transform.localPosition;
                 overlayCanvas.position = __instance.transform.position;
                 overlayCanvas.rotation = __instance.transform.rotation;
+                //try to keep the main menu visible if the HMD is moved more than 0.5 after starting the game.
+                if (mainMenuUICam.localPosition.magnitude > 0.5f)
+                    VRUtil.Recenter();
 
             }
         }
