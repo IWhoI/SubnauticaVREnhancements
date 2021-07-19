@@ -16,6 +16,7 @@ namespace VREnhancements
         public static float HUD_Alpha = 1;
         public static float HUD_Distance = 1;
         public static float HUD_Scale = 1;
+        public static int HUD_Separation = 0;
 
         [HarmonyPatch(typeof(uGUI_TabbedControlsPanel), nameof(uGUI_TabbedControlsPanel.AddTab))]
         class AddTab_Patch
@@ -81,6 +82,11 @@ namespace VREnhancements
                 {
                     HUD_Scale = v * 0.5f;
                     UIElementsFixes.UpdateHUDScale(HUD_Scale);
+                });
+                __instance.AddChoiceOption(generalTabIndex, "HUD Separation", new string[] { "Default", "Small", "Medium", "Large" }, HUD_Separation, delegate (int separation)
+                {
+                    HUD_Separation = separation;
+                    UIElementsFixes.UpdateHUDSeparation(separation);
                 });
             }
         }

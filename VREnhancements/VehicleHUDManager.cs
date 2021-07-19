@@ -18,8 +18,8 @@ namespace VREnhancements
         Vector3 seamothQuickSlotsPos = new Vector3(0, -400, 1100);
         Vector3 seamothBarsPanelPos = new Vector3(-350, -250, 1000);
         Vector3 exosuitHUDPos = new Vector3(700, -200, 600);
-        Vector3 exosuitCompassPos = new Vector3(0, 400, 500);
-        Vector3 exosuitQuickSlotsPos = new Vector3(0, -600, 600);
+        Vector3 exosuitCompassPos = new Vector3(0, 400, 700);
+        Vector3 exosuitQuickSlotsPos = new Vector3(0, -700, 700);
         Vector3 exosuitBarsPanelPos = new Vector3(-700, -200, 600);
         Vector3 originalCompassPos;
         Vector3 originalQuickSlotsPos;

@@ -22,6 +22,7 @@ namespace VREnhancements
         static float lastOxygen = -1;
         static float lastFood = -1;
         static float lastWater = -1;
+        static Rect defaultSafeRect;
 
         public static void SetDynamicHUD(bool enabled)
         {
@@ -64,7 +65,38 @@ namespace VREnhancements
             {
                 sceneHUD.GetComponent<RectTransform>().localScale = Vector3.one * scale;
             }
-            //TODO: Consider if only the HUD should be scaled or the whole screen canvas
+        }
+        public static void UpdateHUDSeparation(float separation)
+        {
+            if (sceneHUD)
+            {
+                Rect safeAreaRect;
+                //to make sure that the Rect is centered the width should be 1 - 2x
+                switch (separation)
+                {
+                    case 0:
+                        safeAreaRect = defaultSafeRect;
+                        break;
+                    case 1:
+                        safeAreaRect = new Rect(0.3f,0.3f,0.4f,0.3f);
+                        break;
+                    case 2:
+                        safeAreaRect = new Rect(0.2f, 0.2f, 0.6f, 0.5f);
+                        break;
+                    case 3:
+                        safeAreaRect = new Rect(0.15f, 0.15f, 0.7f, 0.6f);
+                        break;
+                    default:
+                        safeAreaRect = defaultSafeRect;
+                        break;
+                }
+                sceneHUD.GetComponent<uGUI_SafeAreaScaler>().vrSafeRect = safeAreaRect;
+                //the position of element in front the UI Camera would change if the Rect size changes so making sure the elements still face the camera.
+                quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
+                compass.rotation = Quaternion.LookRotation(compass.position);
+                barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);
+
+            }
         }
 
         public static void InitHUD()
@@ -74,6 +106,7 @@ namespace VREnhancements
             UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             UpdateHUDScale(AdditionalVROptions.HUD_Scale);
+            UpdateHUDSeparation(AdditionalVROptions.HUD_Separation);
             //TODO: Add option for HUD element separation by adjusting the vrSafeRect values in uGUI_SafeAreaScaler
             //vrSafeRect width value should be 1-2minx
             if (!quickSlots.GetComponent<UIFader>())
@@ -186,6 +219,7 @@ namespace VREnhancements
                 barsPanel = __instance.transform.Find("Content/BarsPanel");
                 quickSlots = __instance.transform.Find("Content/QuickSlots");
                 compass = __instance.transform.Find("Content/DepthCompass");
+                defaultSafeRect = sceneHUD.GetComponent<uGUI_SafeAreaScaler>().vrSafeRect;
                 __instance.gameObject.AddComponent<VehicleHUDManager>();
                 InitHUD();
             }
