@@ -89,8 +89,6 @@ namespace VREnhancements
                     barsFader.autoFadeDelay = 2;
                 }
             }
-            if (barsPanel)
-                barsPanel.localPosition = new Vector3(-300, -260, 0);
         }
         public static void SetSubtitleHeight(float percentage)
         {
@@ -146,7 +144,6 @@ namespace VREnhancements
             }
         }
 
-
         [HarmonyPatch(typeof(uGUI_SceneHUD), nameof(uGUI_SceneHUD.Awake))]
         class SceneHUD_Awake_Patch
         {
@@ -156,7 +153,7 @@ namespace VREnhancements
                 barsPanel = __instance.transform.Find("Content/BarsPanel");
                 quickSlots = __instance.transform.Find("Content/QuickSlots");
                 compass = __instance.transform.Find("Content/DepthCompass");
-                //__instance.gameObject.AddComponent<VehicleHUDManager>();
+                __instance.gameObject.AddComponent<VehicleHUDManager>();
                 InitHUD();
             }
         }
