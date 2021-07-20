@@ -178,25 +178,21 @@ namespace VREnhancements
                 UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             }
         }
-        /*
-        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.AnimateLoadingText))]
-        class AnimatedText_Patch
+        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.ShowLoadingScreen))]
+        class uGUI_ShowLoading_Patch
         {
-            static void Postfix(uGUI_SceneLoading __instance)
-            {   
-                //TODO: Don't do a find here
-                GameObject mainCam = GameObject.Find("UI Camera");
-                if(!mainCam)
-                    mainCam = GameObject.Find("MainCamera (UI)");
-                GameObject loadingCanvas = GameObject.Find("VR Loading Canvas");
+            static bool Prefix()
+            {
+                GameObject mainCam = GameObject.Find("Main Camera");
                 if (mainCam)
                 {
-                    //Debug.Log("MAIN CAM NAME: " + mainCam.name);
-                    loadingCanvas.transform.position = mainCam.transform.position + mainCam.transform.forward * 2;
-                    loadingCanvas.transform.LookAt(mainCam.transform.position);
+                    //MainCameraV2 doesn't exist in the main menu so I'm not sure what they were doing in uGUI_SceneLoading.OnFadeFinished in the original code
+                    //this will disable the actual main camera immediately at the start of loading. This camera is replaced after the scene loads.
+                    mainCam.GetComponent<Camera>().enabled = false;
                 }
+                return true;
             }
-        }*/
+        }
 
         [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.End))]
         class SceneLoading_End_Patch

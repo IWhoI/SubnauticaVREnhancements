@@ -141,5 +141,14 @@ namespace VREnhancements
                 }
             }
         }
+        [HarmonyPatch(typeof(WaterSunShaftsOnCamera), nameof(WaterSunShaftsOnCamera.Awake))]
+        class SunShafts_Awake_Patch
+        {
+            static void Postfix(WaterSunShaftsOnCamera __instance)
+            {
+                __instance.reduction = 6;//default is 2. this improves performance with little noticable difference to the sun shafts.
+            }
+
+        }
     }
 }
