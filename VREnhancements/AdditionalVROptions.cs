@@ -135,6 +135,7 @@ namespace VREnhancements
                 HUD_Distance = serializer.Serialize("VR/HUD_Distance", HUD_Distance);
                 HUD_Scale = serializer.Serialize("VR/HUD_Scale", HUD_Scale);
                 HUD_Alpha = serializer.Serialize("VR/HUD_Alpha", HUD_Alpha);
+                HUD_Separation = serializer.Serialize("VR/HUD_Separation", HUD_Separation);
             }
         }
 
