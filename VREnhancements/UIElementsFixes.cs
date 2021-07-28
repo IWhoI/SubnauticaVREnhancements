@@ -52,10 +52,15 @@ namespace VREnhancements
         {
             if (sceneHUD)
             {
-                sceneHUD.GetComponentInParent<Canvas>().transform.position =
-                    new Vector3(sceneHUD.GetComponentInParent<Canvas>().transform.position.x,
-                    sceneHUD.GetComponentInParent<Canvas>().transform.position.y,
-                    distance);
+                Camera uicamera = ManagedCanvasUpdate.GetUICamera();
+                if (uicamera != null)
+                {
+                    Transform transform = uicamera.transform;
+                    sceneHUD.GetComponentInParent<Canvas>().transform.position = transform.position + transform.forward * distance;
+                }
+                else
+                    Debug.Log("HUD Distance UI camera NULL");
+                sceneHUD.GetComponentInParent<uGUI_CanvasScaler>().distance = distance;//need to do this since the scaler updates the canvas position with this value if the uicamera changes.
                 //sceneHUD.transform.position = new Vector3(sceneHUD.transform.position.x,sceneHUD.transform.position.y,distance);
             }
         }
@@ -63,7 +68,9 @@ namespace VREnhancements
         {
             if (sceneHUD)
             {
-                sceneHUD.GetComponent<RectTransform>().localScale = Vector3.one * scale;
+                sceneHUD.GetComponentInParent<Canvas>().scaleFactor *= scale;
+                //sceneHUD.GetComponent<RectTransform>().localScale = Vector3.one * scale;
+
             }
         }
         public static void UpdateHUDSeparation(float separation)
@@ -168,7 +175,17 @@ namespace VREnhancements
             }
         }
 
-        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.Begin))]
+        [HarmonyPatch(typeof(uGUI), nameof(uGUI.Awake))]
+        class LoadingScreen_Patch
+        {
+            static void Postfix(uGUI __instance)
+            {
+                if (!__instance.loading.GetComponent<VRLoadingScreen>())
+                    __instance.loading.gameObject.AddComponent<VRLoadingScreen>();
+            }
+        }
+
+        /*[HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.Begin))]
         class uGUI_Awake_Patch
         {
             static void Postfix()
@@ -177,7 +194,7 @@ namespace VREnhancements
                 //resetting distance at the start of loading a save to make sure it doesn't get reset to 1
                 UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             }
-        }
+        }*/
         [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.ShowLoadingScreen))]
         class uGUI_ShowLoading_Patch
         {
@@ -456,56 +473,6 @@ namespace VREnhancements
                 {
                     cursorCanvas.sortingLayerID = lastRaycastResult.sortingLayer;//put the cursor on the same layer as whatever was hit by the cursor raycast.
                 }
-            }
-        }
-
-        [HarmonyPatch(typeof(uGUI), nameof(uGUI.Awake))]
-        class LoadingScreen_Patch
-        {
-            static GameObject loadingCanvas;
-            static void Postfix(uGUI __instance)
-            {
-                Image loadingArtwork = __instance.loading.loadingBackground.transform.Find("LoadingArtwork").GetComponent<Image>();
-                RectTransform textRect = __instance.loading.loadingText.gameObject.GetComponent<RectTransform>();
-                RectTransform logoRect = __instance.loading.loadingBackground.transform.Find("Logo").GetComponent<RectTransform>();
-                Vector2 midCenter = new Vector2(0.5f, 0.5f);
-                if (loadingArtwork != null && textRect != null && logoRect != null)
-                {
-                    //remove background image and set background to black
-                    loadingArtwork.sprite = null;
-                    loadingArtwork.color = Color.black;
-                    loadingArtwork.GetComponent<RectTransform>().localScale = Vector3.one * 2;//temporary fix for when hud distance is increased
-                    //center the logo
-                    logoRect.anchorMin = midCenter;
-                    logoRect.anchorMax = midCenter;
-                    logoRect.pivot = midCenter;
-                    logoRect.anchoredPosition = Vector2.zero;
-                    //center text and offset below logo
-                    textRect.anchorMin = midCenter;
-                    textRect.anchorMax = midCenter;
-                    textRect.pivot = midCenter;
-                    textRect.anchoredPosition = new Vector2(0f, -200f);
-                    textRect.sizeDelta = new Vector2(400f, 100f);
-                    textRect.gameObject.GetComponent<Text>().alignment = TextAnchor.MiddleCenter;
-                }
-                /*if(!loadingCanvas)
-                {
-                    loadingCanvas = new GameObject("VR Loading Canvas");
-                    loadingCanvas.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
-                    loadingCanvas.layer = LayerMask.NameToLayer("UI");
-                    Transform mainCam = GameObject.Find("UI Camera").transform;
-                    if (mainCam)
-                    {
-                        Debug.Log("MAIN CAM NAME: " + mainCam.name);
-                        loadingCanvas.transform.position = mainCam.position + mainCam.forward * 2;
-                        loadingCanvas.transform.LookAt(mainCam.position);
-                        __instance.gameObject.transform.SetParent(loadingCanvas.transform, false);
-                        Object.DontDestroyOnLoad(loadingCanvas);
-                    }
-                    else
-                        Debug.Log("UI camera not found");
-                    
-                }*/
             }
         }
         static Transform screenCanvas;
