@@ -106,7 +106,6 @@ namespace VREnhancements
             UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             UpdateHUDScale(AdditionalVROptions.HUD_Scale);
-            UpdateHUDSeparation(AdditionalVROptions.HUD_Separation);
             //TODO: Add option for HUD element separation by adjusting the vrSafeRect values in uGUI_SafeAreaScaler
             //vrSafeRect width value should be 1-2minx
             if (!quickSlots.GetComponent<UIFader>())
@@ -203,6 +202,7 @@ namespace VREnhancements
                 quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
                 compass.rotation = Quaternion.LookRotation(compass.position);
                 barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);
+                UpdateHUDSeparation(AdditionalVROptions.HUD_Separation);//wasn't working in HUD awake so doing it here
             }
         }
 
