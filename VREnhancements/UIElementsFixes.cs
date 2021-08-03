@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.XR;
+using UnityEngine.PostProcessing;
 
 namespace VREnhancements
 {
@@ -52,25 +53,25 @@ namespace VREnhancements
         {
             if (sceneHUD)
             {
+                Transform screenCanvas = sceneHUD.transform.parent;
                 Camera uicamera = ManagedCanvasUpdate.GetUICamera();
                 if (uicamera != null)
                 {
                     Transform transform = uicamera.transform;
-                    sceneHUD.GetComponentInParent<Canvas>().transform.position = transform.position + transform.forward * distance;
+                    //move the screen canvas instead of just the HUD so all on screen elements like blips etc are also affect by the distance update.
+                    screenCanvas.transform.localPosition = screenCanvas.transform.parent.transform.InverseTransformPoint(transform.position + transform.forward * distance);
+                    //make sure the elements are still facing the camera after changing position
+                    quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
+                    compass.rotation = Quaternion.LookRotation(compass.position);
+                    barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);
                 }
-                else
-                    Debug.Log("HUD Distance UI camera NULL");
-                sceneHUD.GetComponentInParent<uGUI_CanvasScaler>().distance = distance;//need to do this since the scaler updates the canvas position with this value if the uicamera changes.
-                //sceneHUD.transform.position = new Vector3(sceneHUD.transform.position.x,sceneHUD.transform.position.y,distance);
             }
         }
         public static void UpdateHUDScale(float scale)
         {
             if (sceneHUD)
             {
-                sceneHUD.GetComponentInParent<Canvas>().scaleFactor *= scale;
-                //sceneHUD.GetComponent<RectTransform>().localScale = Vector3.one * scale;
-
+                sceneHUD.GetComponent<RectTransform>().localScale = Vector3.one * scale;
             }
         }
         public static void UpdateHUDSeparation(float separation)
@@ -108,14 +109,12 @@ namespace VREnhancements
 
         public static void InitHUD()
         {
+            //add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
             if (!sceneHUD.gameObject.GetComponent<CanvasGroup>())
-                sceneHUD.gameObject.AddComponent<CanvasGroup>();//add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
+                sceneHUD.gameObject.AddComponent<CanvasGroup>();
             UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             UpdateHUDScale(AdditionalVROptions.HUD_Scale);
-            UpdateHUDSeparation(AdditionalVROptions.HUD_Separation);
-            //TODO: Add option for HUD element separation by adjusting the vrSafeRect values in uGUI_SafeAreaScaler
-            //vrSafeRect width value should be 1-2minx
             if (!quickSlots.GetComponent<UIFader>())
             {
                 UIFader qsFader = quickSlots.gameObject.AddComponent<UIFader>();
@@ -207,6 +206,7 @@ namespace VREnhancements
                     //this will disable the actual main camera immediately at the start of loading. This camera is replaced after the scene loads.
                     mainCam.GetComponent<Camera>().enabled = false;
                 }
+                MM_Update_Patch.distanceUpdated = false;
                 return true;
             }
         }
@@ -220,6 +220,7 @@ namespace VREnhancements
                 quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
                 compass.rotation = Quaternion.LookRotation(compass.position);
                 barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);
+                UpdateHUDSeparation(AdditionalVROptions.HUD_Separation);//wasn't working in HUD awake so put it here instead
             }
         }
 
@@ -484,17 +485,30 @@ namespace VREnhancements
         {
             static void Postfix(uGUI_MainMenu __instance)
             {
-                mainMenuUICam = MainCamera.camera.gameObject.transform;
+                GameObject mainCam = GameObject.Find("Main Camera");
+                __instance.gameObject.GetComponent<uGUI_CanvasScaler>().enabled = false;
+                mainMenuUICam = ManagedCanvasUpdate.GetUICamera().transform;
                 mainMenu = __instance.transform.Find("Panel/MainMenu");
                 screenCanvas = GameObject.Find("ScreenCanvas").transform;
                 overlayCanvas = GameObject.Find("OverlayCanvas").transform;
+                __instance.transform.position = new Vector3(22.5f,-0.8f,0);
+                __instance.transform.localScale = Vector3.one * 0.0035f;
+                //add AA to the main menu UI
+                PostProcessingBehaviour postB = ManagedCanvasUpdate.GetUICamera().gameObject.AddComponent<PostProcessingBehaviour>();
+                postB.profile = mainCam.GetComponent<UwePostProcessingManager>().defaultProfile;
+                postB.profile.depthOfField.enabled = false;
+                postB.profile.bloom.enabled = false;
+                AntialiasingModel.Settings AAsettings = postB.profile.antialiasing.settings;
+                //extreme performance give sharper text
+                AAsettings.fxaaSettings.preset = AntialiasingModel.FxaaPreset.Performance;
+                postB.profile.antialiasing.settings = AAsettings;
                 VRUtil.Recenter();
             }
         }
-
         [HarmonyPatch(typeof(uGUI_MainMenu), nameof(uGUI_MainMenu.Update))]
         class MM_Update_Patch
         {
+            public static bool distanceUpdated = false;
             static void Postfix(uGUI_MainMenu __instance)
             {
                 //keep the main menu tilted towards the camera.
@@ -509,9 +523,9 @@ namespace VREnhancements
                 //try to keep the main menu visible if the HMD is moved more than 0.5 after starting the game.
                 if (mainMenuUICam.localPosition.magnitude > 0.5f)
                     VRUtil.Recenter();
-
-            }
+                }
         }
+
         [HarmonyPatch(typeof(uGUI_BuildWatermark), nameof(uGUI_BuildWatermark.UpdateText))]
         class BWM_UpdateText_Patch
         {
@@ -520,7 +534,48 @@ namespace VREnhancements
                 //make the version watermark more visible
                 __instance.GetComponent<Text>().color = new Vector4(1,1,1,0.5f);
                 //TODO: fix this after moving the main menu back and scaling up or consider reparenting to main menu
-                __instance.transform.localPosition = new Vector3(500, -670, 0);
+                __instance.transform.localPosition = new Vector3(950, -450, 0);
+                
+            }
+        }
+        [HarmonyPatch(typeof(uGUI_CanvasScaler), nameof(uGUI_CanvasScaler.SetScaleFactor))]
+        class Canvas_ScaleFactor_Patch
+        {
+            static bool Prefix(ref float scaleFactor)
+            {
+                //any scale factor less than 1 reduces the quality of UI elements.
+                if (scaleFactor < 1)
+                    scaleFactor = 1;
+                return true;
+            }
+        }
+        [HarmonyPatch(typeof(uGUI_CanvasScaler), nameof(uGUI_CanvasScaler.UpdateTransform))]
+        class Canvas_UpdateTransform_Patch
+        {
+            static bool Prefix(uGUI_CanvasScaler __instance)
+            {
+                if(__instance.gameObject.name == "ScreenCanvas")
+                    __instance.distance = AdditionalVROptions.HUD_Distance;
+                return true;
+            }
+        }
+        [HarmonyPatch(typeof(uGUI_CanvasScaler), nameof(uGUI_CanvasScaler.UpdateFrustum))]
+        class Canvas_UpdateFrustum_Patch
+        {
+            static float originalDistance=1;
+            static bool Prefix(uGUI_CanvasScaler __instance)
+            {
+                if (__instance.gameObject.name == "ScreenCanvas")
+                {
+                    originalDistance = __instance.distance;
+                    __instance.distance = 1;
+                }
+                return true;
+            }
+            static void Postfix(uGUI_CanvasScaler __instance)
+            {
+                if (__instance.gameObject.name == "ScreenCanvas")
+                    __instance.distance = originalDistance;
             }
         }
     }
