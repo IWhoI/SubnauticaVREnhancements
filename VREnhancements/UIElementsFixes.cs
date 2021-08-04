@@ -149,6 +149,14 @@ namespace VREnhancements
                 __instance.blackOverlay.gameObject.GetComponent<RectTransform>().localScale = Vector3.one * 2;
             }
         }
+        [HarmonyPatch(typeof(uGUI_SceneIntro), nameof(uGUI_SceneIntro.Start))]
+        class uGUI_uGUI_SceneIntro_Start_Patch
+        {
+            static void Postfix(uGUI_SceneIntro __instance)
+            {
+                __instance.gameObject.GetComponent<RectTransform>().sizeDelta = Vector2.one * 2000;
+            }
+        }
 
         [HarmonyPatch(typeof(Seaglide), nameof(Seaglide.OnDraw))]
         class Seaglide_OnDraw_Patch
@@ -488,24 +496,6 @@ namespace VREnhancements
                     textRect.sizeDelta = new Vector2(400f, 100f);
                     textRect.gameObject.GetComponent<Text>().alignment = TextAnchor.MiddleCenter;
                 }
-                /*if(!loadingCanvas)
-                {
-                    loadingCanvas = new GameObject("VR Loading Canvas");
-                    loadingCanvas.AddComponent<Canvas>().renderMode = RenderMode.WorldSpace;
-                    loadingCanvas.layer = LayerMask.NameToLayer("UI");
-                    Transform mainCam = GameObject.Find("UI Camera").transform;
-                    if (mainCam)
-                    {
-                        Debug.Log("MAIN CAM NAME: " + mainCam.name);
-                        loadingCanvas.transform.position = mainCam.position + mainCam.forward * 2;
-                        loadingCanvas.transform.LookAt(mainCam.position);
-                        __instance.gameObject.transform.SetParent(loadingCanvas.transform, false);
-                        Object.DontDestroyOnLoad(loadingCanvas);
-                    }
-                    else
-                        Debug.Log("UI camera not found");
-                    
-                }*/
             }
         }
         static Transform screenCanvas;
