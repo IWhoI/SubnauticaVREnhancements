@@ -48,7 +48,7 @@ namespace VREnhancements
                     VROptions.groundMoveScale = v / 100f;
                 });
                 __instance.AddHeading(generalTabIndex, "VR User Interface Options");
-                __instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleHeight, 20, 75, 60, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleHeight, 20, 75, 35, delegate (float v)
                 {
                     subtitleHeight = v;
                     UIElementsFixes.SetSubtitleHeight(subtitleHeight);

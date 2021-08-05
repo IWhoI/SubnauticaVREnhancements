@@ -24,6 +24,7 @@ namespace VREnhancements
         static float lastFood = -1;
         static float lastWater = -1;
         static Rect defaultSafeRect;
+        static float menuDistance = 1.5f;
 
         public static void SetDynamicHUD(bool enabled)
         {
@@ -115,6 +116,7 @@ namespace VREnhancements
             UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             UpdateHUDScale(AdditionalVROptions.HUD_Scale);
+            //UpdateHUDSeparation done in uGUI_SceneLoading.End instead
             if (!quickSlots.GetComponent<UIFader>())
             {
                 UIFader qsFader = quickSlots.gameObject.AddComponent<UIFader>();
@@ -133,11 +135,39 @@ namespace VREnhancements
         }
         public static void SetSubtitleHeight(float percentage)
         {
-            Subtitles.main.popup.oy = GraphicsUtil.GetScreenSize().y * percentage / 100;
+            Subtitles.main.popup.oy = Subtitles.main.GetComponent<RectTransform>().rect.height * percentage / 100;
         }
         public static void SetSubtitleScale(float scale)
         {
             Subtitles.main.popup.GetComponent<RectTransform>().localScale = Vector3.one * scale;
+        }
+
+        [HarmonyPatch(typeof(Subtitles), nameof(Subtitles.Show))]
+        class SubtitlesPosition_Patch
+        {
+            static bool Prefix(Subtitles __instance)
+            {
+                __instance.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);//to keep subtitles centered when scaling.
+                __instance.popup.text.alignment = TextAnchor.MiddleLeft;
+                SetSubtitleScale(AdditionalVROptions.subtitleScale);
+                SetSubtitleHeight(AdditionalVROptions.subtitleHeight);
+                return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(ErrorMessage), nameof(ErrorMessage.AddMessage))]
+        class AddErrorMessage_Patch
+        {
+            //disables error messages while loading to prevent the ugly overlapping error messages
+            static bool Prefix()
+            {
+                if (uGUI.main.loading.IsLoading)
+                {
+                    return false;
+                }
+                else
+                    return true;
+            }
         }
 
         [HarmonyPatch(typeof(uGUI_PlayerDeath), nameof(uGUI_PlayerDeath.Start))]
@@ -154,6 +184,14 @@ namespace VREnhancements
             static void Postfix(uGUI_PlayerSleep __instance)
             {
                 __instance.blackOverlay.gameObject.GetComponent<RectTransform>().localScale = Vector3.one * 2;
+            }
+        }
+        [HarmonyPatch(typeof(uGUI_SceneIntro), nameof(uGUI_SceneIntro.Start))]
+        class uGUI_uGUI_SceneIntro_Start_Patch
+        {
+            static void Postfix(uGUI_SceneIntro __instance)
+            {
+                __instance.gameObject.GetComponent<RectTransform>().sizeDelta = Vector2.one * 2000;
             }
         }
 
@@ -206,7 +244,6 @@ namespace VREnhancements
                     //this will disable the actual main camera immediately at the start of loading. This camera is replaced after the scene loads.
                     mainCam.GetComponent<Camera>().enabled = false;
                 }
-                MM_Update_Patch.distanceUpdated = false;
                 return true;
             }
         }
@@ -321,17 +358,6 @@ namespace VREnhancements
                    
             }
         }
-        [HarmonyPatch(typeof(Subtitles), nameof(Subtitles.Start))]
-        class SubtitlesPosition_Patch
-        {
-            static void Postfix(Subtitles __instance)
-            {
-                __instance.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);//to keep subtitles centered when scaling.
-                SetSubtitleHeight(AdditionalVROptions.subtitleHeight);                
-                SetSubtitleScale(AdditionalVROptions.subtitleScale);
-            }
-        }
-
         [HarmonyPatch(typeof(uGUI_SunbeamCountdown), nameof(uGUI_SunbeamCountdown.Start))]
         class SunbeamCountdown_Start_Patch
         {
@@ -486,29 +512,29 @@ namespace VREnhancements
             static void Postfix(uGUI_MainMenu __instance)
             {
                 GameObject mainCam = GameObject.Find("Main Camera");
-                __instance.gameObject.GetComponent<uGUI_CanvasScaler>().enabled = false;
                 mainMenuUICam = ManagedCanvasUpdate.GetUICamera().transform;
                 mainMenu = __instance.transform.Find("Panel/MainMenu");
                 screenCanvas = GameObject.Find("ScreenCanvas").transform;
                 overlayCanvas = GameObject.Find("OverlayCanvas").transform;
-                __instance.transform.position = new Vector3(22.5f,-0.8f,0);
+                //disabling the canvas scaler to prevent it from messing up the custom distance and scale
+                __instance.gameObject.GetComponent<uGUI_CanvasScaler>().enabled = false;
+                __instance.transform.position = new Vector3(mainMenuUICam.transform.position.x + menuDistance,-0.8f,0);
                 __instance.transform.localScale = Vector3.one * 0.0035f;
-                //add AA to the main menu UI
-                PostProcessingBehaviour postB = ManagedCanvasUpdate.GetUICamera().gameObject.AddComponent<PostProcessingBehaviour>();
+                //add AA to the main menu UI. The shimmering edges are better but the text is blurry.
+                /*PostProcessingBehaviour postB = ManagedCanvasUpdate.GetUICamera().gameObject.AddComponent<PostProcessingBehaviour>();
                 postB.profile = mainCam.GetComponent<UwePostProcessingManager>().defaultProfile;
                 postB.profile.depthOfField.enabled = false;
                 postB.profile.bloom.enabled = false;
                 AntialiasingModel.Settings AAsettings = postB.profile.antialiasing.settings;
                 //extreme performance give sharper text
                 AAsettings.fxaaSettings.preset = AntialiasingModel.FxaaPreset.Performance;
-                postB.profile.antialiasing.settings = AAsettings;
+                postB.profile.antialiasing.settings = AAsettings;*/
                 VRUtil.Recenter();
             }
         }
         [HarmonyPatch(typeof(uGUI_MainMenu), nameof(uGUI_MainMenu.Update))]
         class MM_Update_Patch
         {
-            public static bool distanceUpdated = false;
             static void Postfix(uGUI_MainMenu __instance)
             {
                 //keep the main menu tilted towards the camera.
@@ -524,6 +550,17 @@ namespace VREnhancements
                 if (mainMenuUICam.localPosition.magnitude > 0.5f)
                     VRUtil.Recenter();
                 }
+        }
+        [HarmonyPatch(typeof(IngameMenu), nameof(IngameMenu.Open))]
+        class InGameMenu_Open_Patch
+        {
+            static bool Prefix(IngameMenu __instance)
+            {
+                uGUI_CanvasScaler canvasScaler = __instance.gameObject.GetComponent<uGUI_CanvasScaler>();
+                canvasScaler.distance = menuDistance;
+                __instance.transform.localScale = Vector3.one * 0.002f;
+                return true;
+            }
         }
 
         [HarmonyPatch(typeof(uGUI_BuildWatermark), nameof(uGUI_BuildWatermark.UpdateText))]
