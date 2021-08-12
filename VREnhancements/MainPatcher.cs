@@ -19,6 +19,7 @@ namespace VREnhancements
                     Harmony harmony = new Harmony("com.whotnt.subnautica.vrenhancements.mod");
                     harmony.PatchAll();
                     Console.WriteLine("[VR Enhancements] Patched. Unity Version: "+Application.unityVersion);
+                    //Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
                 }
                 catch (Exception ex)
                 {

@@ -25,6 +25,7 @@ namespace VREnhancements
         static float lastWater = -1;
         static Rect defaultSafeRect;
         static float menuDistance = 1.5f;
+        static float menuScale = 0.002f;
 
         public static void SetDynamicHUD(bool enabled)
         {
@@ -237,21 +238,16 @@ namespace VREnhancements
         {
             static bool Prefix()
             {
-                GameObject mainCam = GameObject.Find("Main Camera");
-                if (mainCam)
-                {
-                    //MainCameraV2 doesn't exist in the main menu so I'm not sure what they were doing in uGUI_SceneLoading.OnFadeFinished in the original code
-                    //this will disable the actual main camera immediately at the start of loading. This camera is replaced after the scene loads.
-                    mainCam.GetComponent<Camera>().enabled = false;
-                }
+                VRLoadingScreen.main.StartLoading();
                 return true;
             }
         }
 
-        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.End))]
-        class SceneLoading_End_Patch
+        //EnsureCreated is called at the end of PAXTerrainController.LoadAsync()
+        [HarmonyPatch(typeof(uGUI_BuilderMenu), nameof(uGUI_BuilderMenu.EnsureCreated))]
+        class Loading_End_Patch
         {
-            static void Postfix(uGUI_SceneLoading __instance)
+            static void Postfix()
             {
                 VRUtil.Recenter();
                 quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
@@ -519,7 +515,8 @@ namespace VREnhancements
                 //disabling the canvas scaler to prevent it from messing up the custom distance and scale
                 __instance.gameObject.GetComponent<uGUI_CanvasScaler>().enabled = false;
                 __instance.transform.position = new Vector3(mainMenuUICam.transform.position.x + menuDistance,-0.8f,0);
-                __instance.transform.localScale = Vector3.one * 0.0035f;
+                __instance.transform.localScale = Vector3.one * menuScale * 1.5f;
+                __instance.gameObject.GetComponent<Canvas>().scaleFactor = 2;//sharpen text
                 //add AA to the main menu UI. The shimmering edges are better but the text is blurry.
                 /*PostProcessingBehaviour postB = ManagedCanvasUpdate.GetUICamera().gameObject.AddComponent<PostProcessingBehaviour>();
                 postB.profile = mainCam.GetComponent<UwePostProcessingManager>().defaultProfile;
@@ -558,7 +555,21 @@ namespace VREnhancements
             {
                 uGUI_CanvasScaler canvasScaler = __instance.gameObject.GetComponent<uGUI_CanvasScaler>();
                 canvasScaler.distance = menuDistance;
-                __instance.transform.localScale = Vector3.one * 0.002f;
+                __instance.transform.localScale = Vector3.one * menuScale;
+                __instance.gameObject.GetComponent<Canvas>().scaleFactor = 1.5f;//sharpen text
+                return true;
+            }
+        }
+        
+        [HarmonyPatch(typeof(uGUI_BuilderMenu), nameof(uGUI_BuilderMenu.Open))]
+        class uGUI_BuilderMenu_Open_Patch
+        {
+            static bool Prefix(uGUI_BuilderMenu __instance)
+            {
+                uGUI_CanvasScaler canvasScaler = __instance.gameObject.GetComponent<uGUI_CanvasScaler>();
+                canvasScaler.distance = menuDistance;
+                __instance.transform.localScale = Vector3.one * menuScale;
+                __instance.gameObject.GetComponent<Canvas>().scaleFactor = 1.5f;//sharpen text
                 return true;
             }
         }

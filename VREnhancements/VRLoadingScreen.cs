@@ -5,19 +5,20 @@ namespace VREnhancements
 {
     class VRLoadingScreen : MonoBehaviour
     {
-        Transform UICamera;
+        //Transform UICamera;
         Camera mainCamera;
         Vector3 canvasVelocity = Vector3.zero;
         public static VRLoadingScreen main;
-        
         void Awake()
         {
-            if (!main)
                 main = this;
         }
         void Start()
         { 
-            UICamera = ManagedCanvasUpdate.GetUICamera().transform;
+            //UICamera = ManagedCanvasUpdate.GetUICamera().transform;
+            GameObject go = GameObject.Find("Main Camera");
+            if (go)
+                mainCamera = go.GetComponent<Camera>();
             //transform.GetComponent<uGUI_CanvasScaler>().distance = AdditionalVROptions.HUD_Distance;
             Image loadingArtwork = uGUI.main.loading.loadingBackground.transform.Find("LoadingArtwork").GetComponent<Image>();
             RectTransform textRect = uGUI.main.loading.loadingText.gameObject.GetComponent<RectTransform>();
@@ -42,30 +43,25 @@ namespace VREnhancements
                 textRect.sizeDelta = new Vector2(400f, 100f);
                 textRect.gameObject.GetComponent<Text>().alignment = TextAnchor.MiddleCenter;
             }
-            //enabled = false;
-            GameObject go = GameObject.Find("Main Camera");
-            if (go)
-                mainCamera = go.GetComponent<Camera>();
-
         }
 
-        void OnEnable()
+        /*void OnEnable()
         {
             ManagedCanvasUpdate.AddUICameraChangeListener(new ManagedCanvasUpdate.OnUICameraChange(updateUICamera));
-            Debug.Log("Camera Listener Added");
+            //Debug.Log("Camera Listener Added");
         }
         void OnDisable()
         {
             ManagedCanvasUpdate.RemoveUICameraChangeListener(new ManagedCanvasUpdate.OnUICameraChange(updateUICamera));
-            Debug.Log("Camera Listener Removed");
+            //Debug.Log("Camera Listener Removed");
         }
         void updateUICamera(Camera camera)
         {
             UICamera = camera.transform;
-            Debug.Log("UICamera Updated to: " + camera.gameObject.name);
+            //Debug.Log("UICamera Updated to: " + camera.gameObject.name);
         }
 
-        /*void Update()
+        void Update()
         {
             if (!mainCamera)
             {
@@ -76,7 +72,7 @@ namespace VREnhancements
                 if(go)
                 { 
                     mainCamera = go.GetComponent<Camera>();
-                    Debug.Log("Main Camera Set");
+                    Debug.Log("Main Camera Set to: "+mainCamera.name);
                     //mainCamera.enabled = false;
                 }
                 else
@@ -88,38 +84,29 @@ namespace VREnhancements
             }
             else
             {
+                //this will stop working when the new scene loads and the UI camera changes to MainCamera (UI) since the new camera no longer tracks the HMD.
                 transform.position =
                         Vector3.SmoothDamp(transform.position, UICamera.position + UICamera.forward * AdditionalVROptions.HUD_Distance, ref canvasVelocity, 0.3f);
                 transform.rotation = Quaternion.LookRotation(transform.position - UICamera.position, Vector3.up);
             }
-
-
         }*/
 
         public void StartLoading()
         {
-            Debug.Log("START LOADING");
             GameObject go = GameObject.Find("Main Camera");
             if (go)
             {
                 mainCamera = go.GetComponent<Camera>();
-                mainCamera.enabled = false;
-                enabled = true;
+                mainCamera.enabled = false;//make sure only the loading screen is visible
             }
-            else
-                Debug.Log("Main Camera not found");
         }
         public void EndLoading()
         {
-            Debug.Log("END LOADING");
-            if (mainCamera)
-                mainCamera.enabled = true;
-            if (UICamera)
+            /*System.Diagnostics.StackTrace sTrace = new System.Diagnostics.StackTrace();
+            for(int i=0;i<sTrace.FrameCount;i++)
             {
-                transform.position = UICamera.position + UICamera.forward * AdditionalVROptions.HUD_Distance;
-                transform.rotation = UICamera.rotation;
-            }
-            enabled = false;
+                Debug.Log(sTrace.GetFrame(i).GetMethod().ReflectedType.Name+"->"+sTrace.GetFrame(i).GetMethod().Name);
+            }*/
         }
     }
 }
