@@ -91,7 +91,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="3DAudioFix.cs" />
+    <Compile Include="AudioFix.cs" />
     <Compile Include="AdditionalVROptions.cs" />
     <Compile Include="CameraFixes.cs" />
     <Compile Include="CinematicsAnimations.cs" />

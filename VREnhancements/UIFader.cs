@@ -4,6 +4,8 @@ using System.Collections;
 
 namespace VREnhancements
 {
+    //TODO: Rewrite this as a Dynamic HUD class since that is all it's really being used for.
+    //Make it so that everything related to the Dynamic HUD happens here instead of multiple other classes as it is currently.
     class UIFader : MonoBehaviour
     {
         CanvasGroup cg;
@@ -42,14 +44,17 @@ namespace VREnhancements
         }
        public void Fade(float targetAlpha, float fadeSpeed = 1, float delaySeconds = 0, bool reset = false)
         {
-            //if currently fading and reset true, stop current fade and start new fade
-            if (fadeCR != null && fading && reset)
+            if (this.gameObject.activeInHierarchy)
             {
-                StopCoroutine(fadeCR);
-                fadeCR = StartCoroutine(FadeCG(targetAlpha, fadeSpeed, delaySeconds));
+                //if currently fading and reset true, stop current fade and start new fade
+                if (fadeCR != null && fading && reset)
+                {
+                    StopCoroutine(fadeCR);
+                    fadeCR = StartCoroutine(FadeCG(targetAlpha, fadeSpeed, delaySeconds));
+                }
+                else if (!fading)
+                    fadeCR = StartCoroutine(FadeCG(targetAlpha, fadeSpeed, delaySeconds));
             }
-            else if (!fading)
-                fadeCR = StartCoroutine(FadeCG(targetAlpha, fadeSpeed, delaySeconds));
         }
         IEnumerator FadeCG(float targetAlpha, float fadeSpeed, float seconds)
         {

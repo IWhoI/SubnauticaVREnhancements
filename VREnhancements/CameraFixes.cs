@@ -50,11 +50,23 @@ namespace VREnhancements
 
         }*/
 
+        [HarmonyPatch(typeof(MainGameController), nameof(MainGameController.StartGame))]
+        class MGC_StartGame_Patch
+        {
+            //fix the camera position to match head position
+            static void Postfix()
+            {
+                MainCameraControl.main.cameraOffsetTransform.localPosition = new Vector3(0f, 0f, 0.15f);
+            }
+        }
+
         [HarmonyPatch(typeof(MainGameController), nameof(MainGameController.ResetOrientation))]
         class MGC_ResetOrientation_Patch
         {
-            //fix the camera position to match head position after recentering VR
-            static void Postfix(MainGameController __instance)
+            //I'm not sure if this is necessary after doing it in StartGame above but there may be a case where 
+            //it gets reset during gameplay so making sure it get fixed when VRUtil.Recenter is called. 
+            //fix the camera position to match head position
+            static void Postfix()
             {
                 MainCameraControl.main.cameraOffsetTransform.localPosition = new Vector3(0f, 0f, 0.15f);
             }
@@ -114,7 +126,6 @@ namespace VREnhancements
             {
                 Traverse.Create(__instance).Field("usingCamera").SetValue(true);//Using Harmony Reflection Helper to set private variable usingCamera.
                 InputHandlerStack.main.Push(__instance);
-                Player main = Player.main;
                 MainCameraControl.main.enabled = false;
                 Player.main.SetHeadVisible(true);
                 __instance.cameraLight.enabled = true;
@@ -146,7 +157,7 @@ namespace VREnhancements
         {
             static void Postfix(WaterSunShaftsOnCamera __instance)
             {
-                __instance.reduction = 6;//default is 2. this improves performance with little noticable difference to the sun shafts.
+                __instance.reduction = 6;//default is 2. console is 4. This improves performance with little noticable difference to the sun shafts.
             }
 
         }

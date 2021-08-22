@@ -9,7 +9,7 @@ namespace VREnhancements
     class AdditionalVROptions
     {
         static int generalTabIndex = -1;
-        public static bool dynamicHUD = false;
+        public static bool dynamicHUD = true;
         public static float subtitleHeight = 40;
         public static float subtitleScale = 1;
         public static float PDA_Distance = 0.4f;
@@ -23,7 +23,7 @@ namespace VREnhancements
         {
             static void Postfix(int __result, string label)
             {
-                //get the tabIndex of the general tab to be able to use it in  AddGeneralTab_Postfix
+                //get the tabIndex of the general tab to be able to use it in AddGeneralTab_Postfix
                 if (label.Equals("General"))
                     generalTabIndex = __result;
             }
@@ -32,7 +32,6 @@ namespace VREnhancements
         [HarmonyPatch(typeof(uGUI_OptionsPanel), nameof(uGUI_OptionsPanel.AddTabs))]
         class GeneralTab_VROptionsPatch
         {
-            //TODO: Create a new tab instead of using general for all the additional VR options and if possible move existing VR to the same tab
             static void Postfix(uGUI_OptionsPanel __instance)
             {
                 __instance.AddHeading(generalTabIndex, "General VR Options");
@@ -43,12 +42,12 @@ namespace VREnhancements
                     if (Player.main)
                         Player.main.playerAnimator.SetBool("vr_active", !v);
                 });
-                __instance.AddSliderOption(generalTabIndex, "Walk Speed(Default: 60%)", VROptions.groundMoveScale * 100, 50, 100, 60, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "Walk Speed(Default: 60%)", VROptions.groundMoveScale * 100, 50, 100, 100, delegate (float v)
                 {
                     VROptions.groundMoveScale = v / 100f;
                 });
                 __instance.AddHeading(generalTabIndex, "VR User Interface Options");
-                __instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleHeight, 20, 75, 35, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleHeight, 20, 75, 25, delegate (float v)
                 {
                     subtitleHeight = v;
                     UIElementsFixes.SetSubtitleHeight(subtitleHeight);
@@ -68,7 +67,7 @@ namespace VREnhancements
                     UIElementsFixes.SetDynamicHUD(v);
 
                 });
-                __instance.AddSliderOption(generalTabIndex, "HUD Opacity", HUD_Alpha * 100f, 40, 100, 100, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "HUD Opacity", HUD_Alpha * 100f, 40, 100, 70, delegate (float v)
                 {
                     HUD_Alpha = v / 100f;
                     UIElementsFixes.UpdateHUDOpacity(HUD_Alpha);

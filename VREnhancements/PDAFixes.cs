@@ -4,15 +4,16 @@ using RootMotion.FinalIK;
 
 namespace VREnhancements
 {
+    //TODO: Consider squashing the PDA model in the y axis and placing the PDA screen above the PDA to make it much larger
     class PDAFixes
     {
-        static float pdaScale = 1.45f;//1.75f;
-        static float screenScale = 0.0003f;//0.00035f;
-        static float pdaXOffset = -0.35f;
+        static readonly float pdaScale = 1.45f;
+        static readonly float screenScale = 0.0003f;
+        static readonly float pdaXOffset = -0.35f;
         public static float pdaDistance=0.4f;
-        static float pdaXRot = 220f;
-        static float pdaYRot = 30f;
-        static float pdaZRot = 75f;
+        static readonly float pdaXRot = 220f;
+        static readonly float pdaYRot = 30f;
+        static readonly float pdaZRot = 75f;
         static GameObject leftHandTarget;
         static FullBodyBipedIK myIK;
 

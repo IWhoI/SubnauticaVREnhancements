@@ -4,7 +4,7 @@ using FMODUnity;
 
 namespace VREnhancements
 {
-    class _3DAudioFix
+    class AudioFix
     {
         [HarmonyPatch(typeof(SNCameraRoot), nameof(SNCameraRoot.Awake))]
         class Awake_Patch

@@ -110,9 +110,7 @@ namespace VREnhancements
                     barsPanel.localPosition = originalBarsPanelPos;
                     vehicleCanvas.SetActive(false);
                     //reset the rotation to look at the UI camera at (0,0,0);
-                    quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
-                    compass.rotation = Quaternion.LookRotation(compass.position);
-                    barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);
+                    UIElementsFixes.UpdateHUDLookAt();
                 }
             }
         }
