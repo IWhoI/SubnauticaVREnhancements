@@ -16,5 +16,10 @@ This mod fixes the majority of issues with Subnautica in VR as shown here [https
 - When piloting vehicles, the HUD is now attached to the vehicle instead of your head.
 - Added options for customizing the HUD opacity, distance, scale and element separation.
 - Auto Re-centering VR is done in the main menu and after loading a game.
+- Performance optimization for the water sun shafts.
+- Resized and repositioned menus for comfort
+- Replaced the VR Cursor with a better one
+- Disabled the Reticle until needed
+- Fixed a problem where resource tracker blips would only render to the right eye in some cases
 
 If I have the time I will be adding more improvements in later versions.
