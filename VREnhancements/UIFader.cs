@@ -14,7 +14,8 @@ namespace VREnhancements
 
         void Awake()
         {
-            if (!this.gameObject.GetComponent<CanvasGroup>())
+            cg = this.gameObject.GetComponent<CanvasGroup>();
+            if (!cg)
                cg = this.gameObject.AddComponent<CanvasGroup>();
         }
 
@@ -23,7 +24,7 @@ namespace VREnhancements
             if (fading)
                 return;
             //if the element is visible and autofade is true then auto fade.
-            if(autoFadeOut && cg && cg.alpha > 0)
+            if(autoFadeOut && cg.alpha > 0)
             {
                 Fade(0, 1, autoFadeDelay, false);
             }
@@ -52,23 +53,20 @@ namespace VREnhancements
         }
         IEnumerator FadeCG(float targetAlpha, float fadeSpeed, float seconds)
         {
-            if (cg)
-            {
-                fading = true;
-                if(seconds > 0)
-                    yield return new WaitForSeconds(seconds);
-                float newAlpha = cg.alpha;
-                if (fadeSpeed <= 0)
-                    cg.alpha = targetAlpha;
-                else
-                    while (newAlpha != targetAlpha)
-                    {
-                        newAlpha = Mathf.MoveTowards(newAlpha, targetAlpha, fadeSpeed * Time.deltaTime);
-                        cg.alpha = newAlpha;
-                        yield return null;
-                    }
-                fading = false;
-            }
+            fading = true;
+            if(seconds > 0)
+                yield return new WaitForSeconds(seconds);
+            float newAlpha = cg.alpha;
+            if (fadeSpeed <= 0)
+                cg.alpha = targetAlpha;
+            else
+                while (newAlpha != targetAlpha)
+                {
+                    newAlpha = Mathf.MoveTowards(newAlpha, targetAlpha, fadeSpeed * Time.deltaTime);
+                    cg.alpha = newAlpha;
+                    yield return null;
+                }
+            fading = false;
         }
     }
 }

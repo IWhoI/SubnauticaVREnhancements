@@ -101,6 +101,7 @@
     <Compile Include="VehicleHUDManager.cs" />
     <Compile Include="UIElementsFixes.cs" />
     <Compile Include="UIFader.cs" />
+    <Compile Include="VRLoadingScreen.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.XR;
+using UnityEngine.PostProcessing;
 
 namespace VREnhancements
 {
@@ -23,6 +24,8 @@ namespace VREnhancements
         static float lastFood = -1;
         static float lastWater = -1;
         static Rect defaultSafeRect;
+        static float menuDistance = 1.5f;
+        static float menuScale = 0.002f;
 
         public static void SetDynamicHUD(bool enabled)
         {
@@ -52,11 +55,18 @@ namespace VREnhancements
         {
             if (sceneHUD)
             {
-                sceneHUD.GetComponentInParent<Canvas>().transform.position =
-                    new Vector3(sceneHUD.GetComponentInParent<Canvas>().transform.position.x,
-                    sceneHUD.GetComponentInParent<Canvas>().transform.position.y,
-                    distance);
-                //sceneHUD.transform.position = new Vector3(sceneHUD.transform.position.x,sceneHUD.transform.position.y,distance);
+                Transform screenCanvas = sceneHUD.transform.parent;
+                Camera uicamera = ManagedCanvasUpdate.GetUICamera();
+                if (uicamera != null)
+                {
+                    Transform transform = uicamera.transform;
+                    //move the screen canvas instead of just the HUD so all on screen elements like blips etc are also affect by the distance update.
+                    screenCanvas.transform.localPosition = screenCanvas.transform.parent.transform.InverseTransformPoint(transform.position + transform.forward * distance);
+                    //make sure the elements are still facing the camera after changing position
+                    quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
+                    compass.rotation = Quaternion.LookRotation(compass.position);
+                    barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);
+                }
             }
         }
         public static void UpdateHUDScale(float scale)
@@ -101,13 +111,13 @@ namespace VREnhancements
 
         public static void InitHUD()
         {
+            //add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
             if (!sceneHUD.gameObject.GetComponent<CanvasGroup>())
-                sceneHUD.gameObject.AddComponent<CanvasGroup>();//add CanvasGroup to the HUD to be able to set the alpha of all HUD elements
+                sceneHUD.gameObject.AddComponent<CanvasGroup>();
             UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
             UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             UpdateHUDScale(AdditionalVROptions.HUD_Scale);
-            //TODO: Add option for HUD element separation by adjusting the vrSafeRect values in uGUI_SafeAreaScaler
-            //vrSafeRect width value should be 1-2minx
+            //UpdateHUDSeparation done in uGUI_SceneLoading.End instead
             if (!quickSlots.GetComponent<UIFader>())
             {
                 UIFader qsFader = quickSlots.gameObject.AddComponent<UIFader>();
@@ -126,11 +136,39 @@ namespace VREnhancements
         }
         public static void SetSubtitleHeight(float percentage)
         {
-            Subtitles.main.popup.oy = GraphicsUtil.GetScreenSize().y * percentage / 100;
+            Subtitles.main.popup.oy = Subtitles.main.GetComponent<RectTransform>().rect.height * percentage / 100;
         }
         public static void SetSubtitleScale(float scale)
         {
             Subtitles.main.popup.GetComponent<RectTransform>().localScale = Vector3.one * scale;
+        }
+
+        [HarmonyPatch(typeof(Subtitles), nameof(Subtitles.Show))]
+        class SubtitlesPosition_Patch
+        {
+            static bool Prefix(Subtitles __instance)
+            {
+                __instance.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);//to keep subtitles centered when scaling.
+                __instance.popup.text.alignment = TextAnchor.MiddleLeft;
+                SetSubtitleScale(AdditionalVROptions.subtitleScale);
+                SetSubtitleHeight(AdditionalVROptions.subtitleHeight);
+                return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(ErrorMessage), nameof(ErrorMessage.AddMessage))]
+        class AddErrorMessage_Patch
+        {
+            //disables error messages while loading to prevent the ugly overlapping error messages
+            static bool Prefix()
+            {
+                if (uGUI.main.loading.IsLoading)
+                {
+                    return false;
+                }
+                else
+                    return true;
+            }
         }
 
         [HarmonyPatch(typeof(uGUI_PlayerDeath), nameof(uGUI_PlayerDeath.Start))]
@@ -175,7 +213,17 @@ namespace VREnhancements
             }
         }
 
-        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.Begin))]
+        [HarmonyPatch(typeof(uGUI), nameof(uGUI.Awake))]
+        class LoadingScreen_Patch
+        {
+            static void Postfix(uGUI __instance)
+            {
+                if (!__instance.loading.GetComponent<VRLoadingScreen>())
+                    __instance.loading.gameObject.AddComponent<VRLoadingScreen>();
+            }
+        }
+
+        /*[HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.Begin))]
         class uGUI_Awake_Patch
         {
             static void Postfix()
@@ -184,33 +232,28 @@ namespace VREnhancements
                 //resetting distance at the start of loading a save to make sure it doesn't get reset to 1
                 UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
             }
-        }
+        }*/
         [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.ShowLoadingScreen))]
         class uGUI_ShowLoading_Patch
         {
             static bool Prefix()
             {
-                GameObject mainCam = GameObject.Find("Main Camera");
-                if (mainCam)
-                {
-                    //MainCameraV2 doesn't exist in the main menu so I'm not sure what they were doing in uGUI_SceneLoading.OnFadeFinished in the original code
-                    //this will disable the actual main camera immediately at the start of loading. This camera is replaced after the scene loads.
-                    mainCam.GetComponent<Camera>().enabled = false;
-                }
+                VRLoadingScreen.main.StartLoading();
                 return true;
             }
         }
 
-        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.End))]
-        class SceneLoading_End_Patch
+        //EnsureCreated is called at the end of PAXTerrainController.LoadAsync()
+        [HarmonyPatch(typeof(uGUI_BuilderMenu), nameof(uGUI_BuilderMenu.EnsureCreated))]
+        class Loading_End_Patch
         {
-            static void Postfix(uGUI_SceneLoading __instance)
+            static void Postfix()
             {
                 VRUtil.Recenter();
                 quickSlots.rotation = Quaternion.LookRotation(quickSlots.position);
                 compass.rotation = Quaternion.LookRotation(compass.position);
                 barsPanel.rotation = Quaternion.LookRotation(barsPanel.position);
-                UpdateHUDSeparation(AdditionalVROptions.HUD_Separation);//wasn't working in HUD awake so doing it here
+                UpdateHUDSeparation(AdditionalVROptions.HUD_Separation);//wasn't working in HUD awake so put it here instead
             }
         }
 
@@ -311,17 +354,6 @@ namespace VREnhancements
                    
             }
         }
-        [HarmonyPatch(typeof(Subtitles), nameof(Subtitles.Start))]
-        class SubtitlesPosition_Patch
-        {
-            static void Postfix(Subtitles __instance)
-            {
-                __instance.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);//to keep subtitles centered when scaling.
-                SetSubtitleHeight(AdditionalVROptions.subtitleHeight);                
-                SetSubtitleScale(AdditionalVROptions.subtitleScale);
-            }
-        }
-
         [HarmonyPatch(typeof(uGUI_SunbeamCountdown), nameof(uGUI_SunbeamCountdown.Start))]
         class SunbeamCountdown_Start_Patch
         {
@@ -466,38 +498,6 @@ namespace VREnhancements
                 }
             }
         }
-
-        [HarmonyPatch(typeof(uGUI), nameof(uGUI.Awake))]
-        class LoadingScreen_Patch
-        {
-            static GameObject loadingCanvas;
-            static void Postfix(uGUI __instance)
-            {
-                Image loadingArtwork = __instance.loading.loadingBackground.transform.Find("LoadingArtwork").GetComponent<Image>();
-                RectTransform textRect = __instance.loading.loadingText.gameObject.GetComponent<RectTransform>();
-                RectTransform logoRect = __instance.loading.loadingBackground.transform.Find("Logo").GetComponent<RectTransform>();
-                Vector2 midCenter = new Vector2(0.5f, 0.5f);
-                if (loadingArtwork != null && textRect != null && logoRect != null)
-                {
-                    //remove background image and set background to black
-                    loadingArtwork.sprite = null;
-                    loadingArtwork.color = Color.black;
-                    loadingArtwork.GetComponent<RectTransform>().localScale = Vector3.one * 2;//temporary fix for when hud distance is increased
-                    //center the logo
-                    logoRect.anchorMin = midCenter;
-                    logoRect.anchorMax = midCenter;
-                    logoRect.pivot = midCenter;
-                    logoRect.anchoredPosition = Vector2.zero;
-                    //center text and offset below logo
-                    textRect.anchorMin = midCenter;
-                    textRect.anchorMax = midCenter;
-                    textRect.pivot = midCenter;
-                    textRect.anchoredPosition = new Vector2(0f, -200f);
-                    textRect.sizeDelta = new Vector2(400f, 100f);
-                    textRect.gameObject.GetComponent<Text>().alignment = TextAnchor.MiddleCenter;
-                }
-            }
-        }
         static Transform screenCanvas;
         static Transform overlayCanvas;
         static Transform mainMenuUICam;
@@ -507,14 +507,28 @@ namespace VREnhancements
         {
             static void Postfix(uGUI_MainMenu __instance)
             {
-                mainMenuUICam = MainCamera.camera.gameObject.transform;
+                GameObject mainCam = GameObject.Find("Main Camera");
+                mainMenuUICam = ManagedCanvasUpdate.GetUICamera().transform;
                 mainMenu = __instance.transform.Find("Panel/MainMenu");
                 screenCanvas = GameObject.Find("ScreenCanvas").transform;
                 overlayCanvas = GameObject.Find("OverlayCanvas").transform;
+                //disabling the canvas scaler to prevent it from messing up the custom distance and scale
+                __instance.gameObject.GetComponent<uGUI_CanvasScaler>().enabled = false;
+                __instance.transform.position = new Vector3(mainMenuUICam.transform.position.x + menuDistance,-0.8f,0);
+                __instance.transform.localScale = Vector3.one * menuScale * 1.5f;
+                __instance.gameObject.GetComponent<Canvas>().scaleFactor = 2;//sharpen text
+                //add AA to the main menu UI. The shimmering edges are better but the text is blurry.
+                /*PostProcessingBehaviour postB = ManagedCanvasUpdate.GetUICamera().gameObject.AddComponent<PostProcessingBehaviour>();
+                postB.profile = mainCam.GetComponent<UwePostProcessingManager>().defaultProfile;
+                postB.profile.depthOfField.enabled = false;
+                postB.profile.bloom.enabled = false;
+                AntialiasingModel.Settings AAsettings = postB.profile.antialiasing.settings;
+                //extreme performance give sharper text
+                AAsettings.fxaaSettings.preset = AntialiasingModel.FxaaPreset.Performance;
+                postB.profile.antialiasing.settings = AAsettings;*/
                 VRUtil.Recenter();
             }
         }
-
         [HarmonyPatch(typeof(uGUI_MainMenu), nameof(uGUI_MainMenu.Update))]
         class MM_Update_Patch
         {
@@ -532,9 +546,34 @@ namespace VREnhancements
                 //try to keep the main menu visible if the HMD is moved more than 0.5 after starting the game.
                 if (mainMenuUICam.localPosition.magnitude > 0.5f)
                     VRUtil.Recenter();
-
+                }
+        }
+        [HarmonyPatch(typeof(IngameMenu), nameof(IngameMenu.Open))]
+        class InGameMenu_Open_Patch
+        {
+            static bool Prefix(IngameMenu __instance)
+            {
+                uGUI_CanvasScaler canvasScaler = __instance.gameObject.GetComponent<uGUI_CanvasScaler>();
+                canvasScaler.distance = menuDistance;
+                __instance.transform.localScale = Vector3.one * menuScale;
+                __instance.gameObject.GetComponent<Canvas>().scaleFactor = 1.5f;//sharpen text
+                return true;
             }
         }
+        
+        [HarmonyPatch(typeof(uGUI_BuilderMenu), nameof(uGUI_BuilderMenu.Open))]
+        class uGUI_BuilderMenu_Open_Patch
+        {
+            static bool Prefix(uGUI_BuilderMenu __instance)
+            {
+                uGUI_CanvasScaler canvasScaler = __instance.gameObject.GetComponent<uGUI_CanvasScaler>();
+                canvasScaler.distance = menuDistance;
+                __instance.transform.localScale = Vector3.one * menuScale;
+                __instance.gameObject.GetComponent<Canvas>().scaleFactor = 1.5f;//sharpen text
+                return true;
+            }
+        }
+
         [HarmonyPatch(typeof(uGUI_BuildWatermark), nameof(uGUI_BuildWatermark.UpdateText))]
         class BWM_UpdateText_Patch
         {
@@ -543,7 +582,48 @@ namespace VREnhancements
                 //make the version watermark more visible
                 __instance.GetComponent<Text>().color = new Vector4(1,1,1,0.5f);
                 //TODO: fix this after moving the main menu back and scaling up or consider reparenting to main menu
-                __instance.transform.localPosition = new Vector3(500, -670, 0);
+                __instance.transform.localPosition = new Vector3(950, -450, 0);
+                
+            }
+        }
+        [HarmonyPatch(typeof(uGUI_CanvasScaler), nameof(uGUI_CanvasScaler.SetScaleFactor))]
+        class Canvas_ScaleFactor_Patch
+        {
+            static bool Prefix(ref float scaleFactor)
+            {
+                //any scale factor less than 1 reduces the quality of UI elements.
+                if (scaleFactor < 1)
+                    scaleFactor = 1;
+                return true;
+            }
+        }
+        [HarmonyPatch(typeof(uGUI_CanvasScaler), nameof(uGUI_CanvasScaler.UpdateTransform))]
+        class Canvas_UpdateTransform_Patch
+        {
+            static bool Prefix(uGUI_CanvasScaler __instance)
+            {
+                if(__instance.gameObject.name == "ScreenCanvas")
+                    __instance.distance = AdditionalVROptions.HUD_Distance;
+                return true;
+            }
+        }
+        [HarmonyPatch(typeof(uGUI_CanvasScaler), nameof(uGUI_CanvasScaler.UpdateFrustum))]
+        class Canvas_UpdateFrustum_Patch
+        {
+            static float originalDistance=1;
+            static bool Prefix(uGUI_CanvasScaler __instance)
+            {
+                if (__instance.gameObject.name == "ScreenCanvas")
+                {
+                    originalDistance = __instance.distance;
+                    __instance.distance = 1;
+                }
+                return true;
+            }
+            static void Postfix(uGUI_CanvasScaler __instance)
+            {
+                if (__instance.gameObject.name == "ScreenCanvas")
+                    __instance.distance = originalDistance;
             }
         }
     }
