@@ -381,7 +381,7 @@ namespace VREnhancements
             static void Postfix()
             {
                 UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
-                uGUI_SunbeamCountdown.main.transform.GetComponent<UIFader>().SetAutoFade(AdditionalVROptions.dynamicHUD);
+                uGUI_SunbeamCountdown.main?.transform.GetComponent<UIFader>()?.SetAutoFade(AdditionalVROptions.dynamicHUD);
             }
         }
 
