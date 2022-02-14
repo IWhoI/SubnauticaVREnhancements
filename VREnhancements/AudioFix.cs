@@ -17,6 +17,7 @@ namespace VREnhancements
                     Object.Destroy(__instance.gameObject.GetComponent<AudioListener>());
                     Object.Destroy(__instance.gameObject.GetComponent<StudioListener>());
                     //add new listener to the main camera that does rotate with the VR headset
+                    SNCameraRoot.main.mainCam.gameObject.AddComponent<AudioListener>();
                     SNCameraRoot.main.mainCam.gameObject.AddComponent<StudioListener>();
                 }
             }
