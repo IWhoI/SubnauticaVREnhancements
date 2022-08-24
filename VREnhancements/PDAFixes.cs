@@ -17,7 +17,7 @@ namespace VREnhancements
         static GameObject leftHandTarget;
         static FullBodyBipedIK myIK;
 
-        public void SetPDADistance(float distance)
+        public static void SetPDADistance(float distance)
         {
             pdaDistance = distance;
         }

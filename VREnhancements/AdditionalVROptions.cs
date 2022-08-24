@@ -60,6 +60,7 @@ namespace VREnhancements
                 __instance.AddSliderOption(generalTabIndex, "PDA Distance", PDA_Distance * 100f, 25, 40, 40, delegate (float v)
                 {
                     PDA_Distance = v / 100f;
+                    PDAFixes.SetPDADistance(PDA_Distance);
                 });
                 __instance.AddToggleOption(generalTabIndex, "Dynamic HUD", dynamicHUD, delegate (bool v)
                 {
