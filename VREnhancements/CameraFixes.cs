@@ -7,7 +7,7 @@ namespace VREnhancements
     {
         static Transform forwardRefTransform;
         static Transform headRig;
-        [HarmonyPatch(typeof(MainCameraControl), nameof(MainCameraControl.Update))]
+        [HarmonyPatch(typeof(MainCameraControl), nameof(MainCameraControl.OnUpdate))]
         class MCC_Update_Patch
         {
             static float yOffset;
@@ -107,34 +107,30 @@ namespace VREnhancements
             }
         }
 
-        [HarmonyPatch(typeof(SNCameraRoot), nameof(SNCameraRoot.SetFov))]
-        class SNCamSetFov_Patch
-        {
-            //Class: SNCameraRoot
-            //Prevent this method from filling the log with errors when trying to set Fov while in VR mode.
-            static bool Prefix()
-            {
-                return false;
-            }
-        }
-
-        [HarmonyPatch(typeof(CyclopsExternalCams), nameof(CyclopsExternalCams.EnterCameraView))]
+        [HarmonyPatch(typeof(CyclopsExternalCams), nameof(CyclopsExternalCams.SetActive))]
         class EnterCameraView_Patch
         {
             //removed the VRUtil.Recenter call from the original method
-            static bool Prefix(CyclopsExternalCams __instance)
+            static bool Prefix(CyclopsExternalCams __instance, bool value)
             {
-                Traverse.Create(__instance).Field("usingCamera").SetValue(true);//Using Harmony Reflection Helper to set private variable usingCamera.
-                InputHandlerStack.main.Push(__instance);
-                MainCameraControl.main.enabled = false;
-                Player.main.SetHeadVisible(true);
-                __instance.cameraLight.enabled = true;
-                Traverse.Create(__instance).Method("ChangeCamera", 0).GetValue();//Call the private method ChangeCamera(0) using Harmony Reflection Helper
-                if (__instance.lightingPanel)
+                if (value)
                 {
-                    __instance.lightingPanel.TempTurnOffFloodlights();
+                    Traverse.Create(__instance).Field("active").SetValue(true);//Using Harmony Reflection Helper to set private variable active.
+                    InputHandlerStack.main.Push(__instance);
+                    MainCameraControl.main.enabled = false;
+                    Player.main.SetHeadVisible(true);
+                    __instance.cameraLight.enabled = true;
+                    Traverse.Create(__instance).Method("ChangeCamera", 0).GetValue();//Call the private method ChangeCamera(0) using Harmony Reflection Helper
+                    if (__instance.lightingPanel)
+                    {
+                        __instance.lightingPanel.TempTurnOffFloodlights();
+                    }
+                    return false;
+
                 }
-                return false;
+                else
+                    return true;
+                
             }
         }
         

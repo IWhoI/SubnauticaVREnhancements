@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using UnityEngine;
 using RootMotion.FinalIK;
+using System;
 
 namespace VREnhancements
 {
@@ -32,11 +33,10 @@ namespace VREnhancements
                 if (__result)
                 {
                     //set the PDA and PDA Screen scale
-                    GameObject screen = Traverse.Create(__instance).Field("screen").GetValue<GameObject>();//get private variable screen
-                    uGUI_CanvasScaler component = screen.GetComponent<uGUI_CanvasScaler>();
+                    uGUI_CanvasScaler contentScreen = __instance.ui.GetComponent<uGUI_CanvasScaler>();
                     __instance.transform.localScale = new Vector3(pdaScale, pdaScale, 1f);
-                    component.transform.localScale = Vector3.one * screenScale;
-                    component.SetAnchor(__instance.screenAnchor);
+                    contentScreen.transform.localScale = Vector3.one * screenScale;
+                    contentScreen.SetAnchor(__instance.screenAnchor);
                     if (!leftHandTarget)
                         leftHandTarget = new GameObject();
                     leftHandTarget.transform.parent = Player.main.camRoot.transform;
@@ -62,7 +62,7 @@ namespace VREnhancements
             }
         }
 
-        [HarmonyPatch(typeof(PDA), nameof(PDA.Update))]
+        [HarmonyPatch(typeof(PDA), nameof(PDA.ManagedUpdate))]
         class PDA_Update_Patch
         {
             static bool Prefix()

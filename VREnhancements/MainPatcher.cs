@@ -1,16 +1,15 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.XR;
-using QModManager.API.ModLoading;
+using BepInEx;
 using HarmonyLib;
 
 namespace VREnhancements
 {
-    [QModCore]
-    public static class MainPatcher
+    [BepInPlugin("com.whotnt.subnautica.vrenhancements.mod", "VREnhancements", "3.0")]
+    public class MainPatcher:BaseUnityPlugin
     {
-        [QModPatch]
-        public static void Patch()
+       private void Awake()
         {
             if (XRSettings.enabled)
             {                

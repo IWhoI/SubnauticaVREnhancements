@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.UI;
 using UnityEngine;
+using TMPro;
 
 namespace VREnhancements
 {
@@ -42,12 +43,12 @@ namespace VREnhancements
                     if (Player.main)
                         Player.main.playerAnimator.SetBool("vr_active", !v);
                 });
-                __instance.AddSliderOption(generalTabIndex, "Walk Speed(Default: 60%)", VROptions.groundMoveScale * 100, 50, 100, 100, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "Walk Speed(Default: 60%)", VROptions.groundMoveScale * 100, 50, 100, 100, 1f, delegate (float v)
                 {
                     VROptions.groundMoveScale = v / 100f;
-                });
+                }, SliderLabelMode.Float, "F0");
                 __instance.AddHeading(generalTabIndex, "VR User Interface Options");
-                __instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleHeight, 20, 75, 25, delegate (float v)
+                /*__instance.AddSliderOption(generalTabIndex, "Subtitle Height", subtitleHeight, 20, 75, 25, delegate (float v)
                 {
                     subtitleHeight = v;
                     UIElementsFixes.SetSubtitleHeight(subtitleHeight);
@@ -56,33 +57,33 @@ namespace VREnhancements
                 {
                     subtitleScale = v / 100;
                     UIElementsFixes.SetSubtitleScale(subtitleScale);
-                });
-                __instance.AddSliderOption(generalTabIndex, "PDA Distance", PDA_Distance * 100f, 25, 40, 40, delegate (float v)
+                });*/
+                __instance.AddSliderOption(generalTabIndex, "PDA Distance", PDA_Distance * 100f, 25, 40, 40,1f, delegate (float v)
                 {
                     PDA_Distance = v / 100f;
                     PDAFixes.SetPDADistance(PDA_Distance);
-                });
+                }, SliderLabelMode.Float, "F0");
                 __instance.AddToggleOption(generalTabIndex, "Dynamic HUD", dynamicHUD, delegate (bool v)
                 {
                     dynamicHUD = v;
                     UIElementsFixes.SetDynamicHUD(v);
 
                 });
-                __instance.AddSliderOption(generalTabIndex, "HUD Opacity", HUD_Alpha * 100f, 40, 100, 70, delegate (float v)
+                __instance.AddSliderOption(generalTabIndex, "HUD Opacity", HUD_Alpha * 100f, 40, 100, 70,1f, delegate (float v)
                 {
                     HUD_Alpha = v / 100f;
                     UIElementsFixes.UpdateHUDOpacity(HUD_Alpha);
-                });
-                __instance.AddSliderOption(generalTabIndex, "HUD Distance", HUD_Distance / 0.5f, 2, 4, 3, delegate (float v)
+                }, SliderLabelMode.Float, "F0");
+                __instance.AddSliderOption(generalTabIndex, "HUD Distance", HUD_Distance / 0.5f, 2, 4, 3, 1f, delegate (float v)
                 {
                     HUD_Distance = v * 0.5f;
                     UIElementsFixes.UpdateHUDDistance(HUD_Distance);
-                });
-                __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 1, 4, 2, delegate (float v)
+                }, SliderLabelMode.Float, "F0");
+                __instance.AddSliderOption(generalTabIndex, "HUD Scale", HUD_Scale / 0.5f, 1, 4, 2, 1f, delegate (float v)
                 {
                     HUD_Scale = v * 0.5f;
                     UIElementsFixes.UpdateHUDScale(HUD_Scale);
-                });
+                }, SliderLabelMode.Float, "F0");
                 __instance.AddChoiceOption(generalTabIndex, "HUD Separation", new string[] { "Default", "Small", "Medium", "Large" }, HUD_Separation, delegate (int separation)
                 {
                     HUD_Separation = separation;
@@ -90,7 +91,7 @@ namespace VREnhancements
                 });
             }
         }
-
+        //Adds Recenter VR button to the in game menu.
         [HarmonyPatch(typeof(IngameMenu), nameof(IngameMenu.Awake))]
         class IGM_Awake_Patch
         {
@@ -105,18 +106,14 @@ namespace VREnhancements
                     recenterVRButton = UnityEngine.Object.Instantiate<Button>(menuButton, __instance.quitToMainMenuButton.transform.parent);
                     recenterVRButton.transform.SetSiblingIndex(1);//put the button in the second position in the menu
                     recenterVRButton.name = "RecenterVR";
+                    recenterVRButton.GetComponentInChildren<TextMeshProUGUI>().SetText("Recenter VR");
                     recenterVRButton.onClick.RemoveAllListeners();//remove cloned listeners
                     //add new listener
                     recenterVRButton.onClick.AddListener(delegate ()
                     {
                         VRUtil.Recenter();
                     });
-                    //might be a better way to replace the text of the copied button
-                    IEnumerable<Text> enumerable = recenterVRButton.GetComponents<Text>().Concat(recenterVRButton.GetComponentsInChildren<Text>());
-                    foreach (Text text in enumerable)
-                    {
-                        text.text = "Recenter VR";
-                    }
+                    
                 }
             }
         }

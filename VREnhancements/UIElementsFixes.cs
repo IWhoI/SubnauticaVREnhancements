@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.XR;
+using TMPro;
 
 namespace VREnhancements
 {
@@ -154,14 +155,14 @@ namespace VREnhancements
                 }
             }
         }
-        public static void SetSubtitleHeight(float percentage)
+        /*public static void SetSubtitleHeight(float percentage)
         {
             Subtitles.main.popup.oy = Subtitles.main.GetComponent<RectTransform>().rect.height * percentage / 100;
         }
         public static void SetSubtitleScale(float scale)
         {
             Subtitles.main.popup.GetComponent<RectTransform>().localScale = Vector3.one * scale;
-        }
+        }*/
 
         public static void UpdateHUDLookAt()
         {
@@ -208,7 +209,8 @@ namespace VREnhancements
                     
             }
         }
-
+        /* TODO: This has to be updated if I still want the subtitle height to be customizable but the default subtitles in VR now seem fine.
+         * the update will involve uGUI_MessageQueue
         [HarmonyPatch(typeof(Subtitles), nameof(Subtitles.Show))]
         class SubtitlesPosition_Patch
         {
@@ -220,24 +222,9 @@ namespace VREnhancements
                 SetSubtitleHeight(AdditionalVROptions.subtitleHeight);
                 return true;
             }
-        }
+        }*/
 
-        [HarmonyPatch(typeof(ErrorMessage), nameof(ErrorMessage.AddMessage))]
-        class AddErrorMessage_Patch
-        {
-            //disables error messages while loading to prevent the ugly overlapping error messages
-            static bool Prefix()
-            {
-                if (uGUI.main.loading.IsLoading)
-                {
-                    return false;
-                }
-                else
-                    return true;
-            }
-        }
-
-        //make sure the black overlays always hides the background for all HUD distances
+        //make sure the black overlays always hides the background for all HUD distances by scaling them up
         [HarmonyPatch(typeof(uGUI_PlayerDeath), nameof(uGUI_PlayerDeath.Start))]
         class uGUI_PlayerDeath_Start_Patch
         {
@@ -281,28 +268,38 @@ namespace VREnhancements
             }
         }
 
-        [HarmonyPatch(typeof(uGUI), nameof(uGUI.Awake))]
+        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.Awake))]
         class LoadingScreen_Patch
         {
-            static void Postfix(uGUI __instance)
+            static void Postfix(uGUI_SceneLoading __instance)
             {
-                if (!__instance.loading.GetComponent<VRLoadingScreen>())
-                    __instance.loading.gameObject.AddComponent<VRLoadingScreen>();
-            }
-        }
+                Image loadingArtwork = __instance.loadingBackground.transform.Find("LoadingArtwork").GetComponent<Image>();
+                Vector2 midCenter = new Vector2(0.5f, 0.5f);
+                uGUI_Logo logo = __instance.loadingBackground.GetComponentInChildren<uGUI_Logo>();
+                if (loadingArtwork != null)
+                {
+                    //remove background image and set background to black
+                    loadingArtwork.sprite = null;
+                    loadingArtwork.color = Color.black;
+                    loadingArtwork.GetComponent<RectTransform>().localScale = Vector3.one * 2;//temporary fix for when hud distance is increased
 
-        [HarmonyPatch(typeof(uGUI_SceneLoading), nameof(uGUI_SceneLoading.ShowLoadingScreen))]
-        class uGUI_ShowLoading_Patch
-        {
-            static bool Prefix()
-            {
-                VRLoadingScreen.main.StartLoading();
-                return true;
+                }
+                if (logo != null)
+                {
+                    //center the logo and loading bar
+                    RectTransform logoRect = logo.GetComponent<RectTransform>();
+                    logoRect.anchoredPosition = new Vector2(0, 120f);
+                    logoRect.anchorMax = logoRect.anchorMin = midCenter;
+                    RectTransform parentCanvasRect = logo.transform.parent.GetComponent<RectTransform>();
+                    parentCanvasRect.anchoredPosition = new Vector2(0, -25f);
+                    parentCanvasRect.anchorMin = Vector2.zero;
+                    parentCanvasRect.anchorMax = Vector2.one;
+                }
             }
         }
 
         //EnsureCreated is called at the end of PAXTerrainController.LoadAsync() which is just before the player takes control
-        [HarmonyPatch(typeof(uGUI_BuilderMenu), nameof(uGUI_BuilderMenu.EnsureCreated))]
+        [HarmonyPatch(typeof(uGUI_BuilderMenu), nameof(uGUI_BuilderMenu.EnsureCreatedAsync))]
         class Loading_End_Patch
         {
             static void Postfix()
@@ -371,12 +368,12 @@ namespace VREnhancements
                         UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - fadeInStart) / fadeRange, 0, 1) * AdditionalVROptions.HUD_Alpha);
                     else
                         UpdateHUDOpacity(0);
-                }//opacity is set back to HUDAlpha in PDA.Close Postfix
+                }//opacity is set back to HUDAlpha in PDA.Deactivated Postfix
             }
         }
 
-        [HarmonyPatch(typeof(PDA), nameof(PDA.Close))]
-        class PDA_Close_Patch
+        [HarmonyPatch(typeof(PDA), nameof(PDA.Deactivated))]
+        class PDA_Deactivated_Patch
         {
             static void Postfix()
             {
@@ -492,7 +489,7 @@ namespace VREnhancements
             {
                 if (Player.main)
                 {
-                    Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float reticleDistance, null);
+                    Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float reticleDistance);
                     SubRoot currSub = Player.main.GetCurrentSub();
                     //if piloting the cyclops and not using cyclops cameras
                     //TODO: find a way to use the raycast distance for the ui elements instead of the fixed value of 1.55
@@ -605,7 +602,7 @@ namespace VREnhancements
             {
                 VROptions.gazeBasedCursor = actualGazedBasedCursor;
                 //Fix the problem with the cursor rendering behind UI elements.
-                Canvas cursorCanvas = __instance._cursor.GetComponentInChildren<Graphic>().canvas;
+                Canvas cursorCanvas = Traverse.Create(__instance).Field("_cursorCanvas").GetValue<Canvas>();
                 RaycastResult lastRaycastResult = Traverse.Create(__instance).Field("lastRaycastResult").GetValue<RaycastResult>();
                 if (cursorCanvas && lastRaycastResult.isValid)
                 {
@@ -613,11 +610,11 @@ namespace VREnhancements
                 }
                 //change the VR cursor to look like the default hand reticle cursor for better accuracy when selecting smaller ui elements
                 //TODO: Find a way to not do this every frame.
-                if (__instance._cursor && HandReticle_Start_Patch.defaultReticle)
+                if (cursorCanvas && HandReticle_Start_Patch.defaultReticle)
                 {
-                    __instance._cursor.GetComponentInChildren<Image>().overrideSprite = HandReticle_Start_Patch.defaultReticle;
-                    if (__instance._cursor.transform.localScale.x > 0.002f)
-                        __instance._cursor.transform.localScale = Vector3.one * 0.002f;
+                    cursorCanvas.GetComponentInChildren<Image>().overrideSprite = HandReticle_Start_Patch.defaultReticle;
+                    if (cursorCanvas.transform.localScale.x > 0.002f)
+                        cursorCanvas.transform.localScale = Vector3.one * 0.002f;
                 }
 
             }
@@ -637,8 +634,8 @@ namespace VREnhancements
                 screenCanvas = GameObject.Find("ScreenCanvas").transform;
                 overlayCanvas = GameObject.Find("OverlayCanvas").transform;
                 __instance.gameObject.GetComponent<uGUI_CanvasScaler>().enabled = false;//disabling the canvas scaler to prevent it from messing up the custom distance and scale
-                __instance.transform.position = new Vector3(mainMenuUICam.transform.position.x + menuDistance,-0.8f,0);
-                __instance.transform.localScale = Vector3.one * menuScale * 2f;
+                __instance.transform.position = new Vector3(mainMenuUICam.transform.position.x + menuDistance,-0.3f,0);
+                __instance.transform.localScale = Vector3.one * menuScale * 1.5f;
                 __instance.gameObject.GetComponent<Canvas>().scaleFactor = 1.25f;//sharpen text
                 VRUtil.Recenter();
             }
@@ -703,18 +700,7 @@ namespace VREnhancements
                 return true;
             }
         }
-
-        [HarmonyPatch(typeof(uGUI_BuildWatermark), nameof(uGUI_BuildWatermark.UpdateText))]
-        class BWM_UpdateText_Patch
-        {
-            static void Postfix(uGUI_BuildWatermark __instance)
-            {
-                //make the version watermark more visible
-                __instance.GetComponent<Text>().color = new Vector4(1,1,1,0.5f);
-                __instance.transform.localPosition = new Vector3(950, -450, 0);
-                
-            }
-        }
+        
         [HarmonyPatch(typeof(uGUI_CanvasScaler), nameof(uGUI_CanvasScaler.SetScaleFactor))]
         class Canvas_ScaleFactor_Patch
         {

@@ -13,14 +13,14 @@ namespace VREnhancements
         public static Transform exosuitHUD;
         Transform compass;
         Transform HUDContent;
-        Vector3 seamothHUDPos = new Vector3(350, -300, 1000);
+        Vector3 seamothHUDPos = new Vector3(450, -280, 1000);
         Vector3 seamothCompassPos = new Vector3(0, 450, 950);
-        Vector3 seamothQuickSlotsPos = new Vector3(0, -400, 1100);
-        Vector3 seamothBarsPanelPos = new Vector3(-350, -250, 1000);
+        Vector3 seamothQuickSlotsPos = new Vector3(0, -450, 1100);
+        Vector3 seamothBarsPanelPos = new Vector3(-600, -420, 900);
         Vector3 exosuitHUDPos = new Vector3(700, -200, 600);
         Vector3 exosuitCompassPos = new Vector3(0, 400, 700);
         Vector3 exosuitQuickSlotsPos = new Vector3(0, -700, 700);
-        Vector3 exosuitBarsPanelPos = new Vector3(-700, -200, 600);
+        Vector3 exosuitBarsPanelPos = new Vector3(-700, -300, 500);
         Vector3 originalCompassPos;
         Vector3 originalQuickSlotsPos;
         Vector3 originalBarsPanelPos;
