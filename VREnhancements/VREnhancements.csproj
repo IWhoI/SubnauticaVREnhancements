@@ -114,4 +114,7 @@
     <Compile Include="UIFader.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>xcopy /y /d "$(TargetPath)" "C:\Games\Subnautica\BepInEx\plugins\VR Enhancements"</PostBuildEvent>
+  </PropertyGroup>
 </Project>

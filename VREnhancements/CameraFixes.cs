@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using UnityEngine;
+using UnityEngine.XR;
 
 namespace VREnhancements
 {
@@ -157,5 +158,28 @@ namespace VREnhancements
             }
 
         }
+        //This fixes the black screen issue. The render targets are being created with a width and height determined by XRSettings.eyeTextureDesc
+        //but VerifyRenderTargets was using Screen.width and Screen.height which only works for monitors.
+        [HarmonyPatch(typeof(WBOIT), nameof(WBOIT.VerifyRenderTargets))]
+        class WBOIT_VerifyRenderTargets_Patch
+        {
+            static bool Prefix(WBOIT __instance)
+            {
+                RenderTexture wboitTex1 = Traverse.Create(__instance).Field("wboitTexture1").GetValue<RenderTexture>();
+                //use the VR eyetexture dimensions instead of Screen.width and height
+                if (wboitTex1 != null && (XRSettings.eyeTextureWidth != wboitTex1.width || XRSettings.eyeTextureHeight != wboitTex1.height))
+                {
+                    Traverse.Create(__instance).Method("DestroyRenderTargets").GetValue();
+                }
+                if (wboitTex1 == null)
+                {
+                    Traverse.Create(__instance).Method("CreateRenderTargets").GetValue();
+                }
+                return false;//don't run the original method
+            }
+
+        }
+
+
     }
 }
