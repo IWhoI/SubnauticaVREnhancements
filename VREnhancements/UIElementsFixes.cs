@@ -480,27 +480,31 @@ namespace VREnhancements
 
             }
         }
-
+        
+        //fixes the reticle distance being locked to the interaction distance after interaction. eg Entering Seamoth and piloting Cyclops
         [HarmonyPatch(typeof(HandReticle), nameof(HandReticle.LateUpdate))]
         class HR_LateUpdate_Patch
         {
-            //fixes the reticle distance being locked to the interaction distance after interaction. eg Entering Seamoth and piloting Cyclops
+            static PointerEventData pointerEventData;
+            static RaycastResult currentRayCastResult;
             static bool Prefix(HandReticle __instance)
             {
                 if (Player.main)
-                {
-                    Targeting.GetTarget(Player.main.gameObject, 2f, out GameObject activeTarget, out float reticleDistance);
+                {                    
+                    FPSInputModule.current.GetPointerDataFromInputModule(out pointerEventData);
+                    currentRayCastResult = pointerEventData.pointerCurrentRaycast;
                     SubRoot currSub = Player.main.GetCurrentSub();
                     //if piloting the cyclops and not using cyclops cameras
-                    //TODO: find a way to use the raycast distance for the ui elements instead of the fixed value of 1.55
                     if (Player.main.isPiloting && currSub && currSub.isCyclops && !CameraCyclopsHUD.gameObject.activeInHierarchy)
-                    {
-                        __instance.SetTargetDistance(reticleDistance > 1.55f ? 1.55f : reticleDistance);
+                    {   
+                        //if the cursor is over an interactive element set the cursor distance to the distance of th element, otherwise set it to HUD_Distance.
+                        if(currentRayCastResult.gameObject)
+                            __instance.SetTargetDistance(currentRayCastResult.distance - 0.05f);//-0.05 since it was sometimes rendering a little behind the target
+                        else
+                            __instance.SetTargetDistance(AdditionalVROptions.HUD_Distance);
                     }
                     else if (Player.main.GetMode() == Player.Mode.LockedPiloting || CameraCyclopsHUD.gameObject.activeInHierarchy)
-                    {
                         __instance.SetTargetDistance(AdditionalVROptions.HUD_Distance);
-                    }
                 }
                 return true;
             }
