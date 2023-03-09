@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.XR;
 
@@ -163,15 +164,14 @@ namespace VREnhancements
         [HarmonyPatch(typeof(WBOIT), nameof(WBOIT.VerifyRenderTargets))]
         class WBOIT_VerifyRenderTargets_Patch
         {
-            static bool Prefix(WBOIT __instance)
+            static bool Prefix(WBOIT __instance, RenderTexture ___wboitTexture1)
             {
-                RenderTexture wboitTex1 = Traverse.Create(__instance).Field("wboitTexture1").GetValue<RenderTexture>();
                 //use the VR eyetexture dimensions instead of Screen.width and height
-                if (wboitTex1 != null && (XRSettings.eyeTextureWidth != wboitTex1.width || XRSettings.eyeTextureHeight != wboitTex1.height))
+                if (___wboitTexture1 != null && (XRSettings.eyeTextureWidth != ___wboitTexture1.width || XRSettings.eyeTextureHeight != ___wboitTexture1.height))
                 {
                     Traverse.Create(__instance).Method("DestroyRenderTargets").GetValue();
                 }
-                if (wboitTex1 == null)
+                if (___wboitTexture1 == null)
                 {
                     Traverse.Create(__instance).Method("CreateRenderTargets").GetValue();
                 }

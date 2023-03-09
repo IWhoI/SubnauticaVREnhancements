@@ -6,7 +6,7 @@ using HarmonyLib;
 
 namespace VREnhancements
 {
-    [BepInPlugin("com.whotnt.subnautica.vrenhancements.mod", "VREnhancements", "3.0")]
+    [BepInPlugin("com.whotnt.subnautica.vrenhancements.mod", "VREnhancements", "3.1.2")]
     public class MainPatcher:BaseUnityPlugin
     {
        private void Awake()

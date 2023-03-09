@@ -38,8 +38,10 @@
       <HintPath>C:\Games\Subnautica\Bepinex\core\0Harmony20.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass_publicized, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
       <HintPath>C:\Games\Subnautica\Subnautica_Data\Managed\publicized_assemblies\Assembly-CSharp-firstpass_publicized.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+      <Aliases>global</Aliases>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Assembly-CSharp_publicized, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -82,6 +84,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>C:\Games\Subnautica\Subnautica_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>C:\Games\Subnautica\Subnautica_Data\Managed\UnityEngine.ParticleSystemModule.dll</HintPath>
+    </Reference>
     <Reference Include="UnityEngine.PhysicsModule, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>C:\Games\Subnautica\Subnautica_Data\Managed\UnityEngine.PhysicsModule.dll</HintPath>
@@ -106,6 +112,7 @@
     <Compile Include="AdditionalVROptions.cs" />
     <Compile Include="CameraFixes.cs" />
     <Compile Include="CinematicsAnimations.cs" />
+    <Compile Include="ParticleFX.cs" />
     <Compile Include="MainPatcher.cs" />
     <Compile Include="PDAFixes.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -116,5 +123,9 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy /y /d "$(TargetPath)" "C:\Games\Subnautica\BepInEx\plugins\VR Enhancements"</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
   </PropertyGroup>
 </Project>
