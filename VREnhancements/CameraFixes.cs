@@ -159,27 +159,5 @@ namespace VREnhancements
             }
 
         }
-        //This fixes the black screen issue. The render targets are being created with a width and height determined by XRSettings.eyeTextureDesc
-        //but VerifyRenderTargets was using Screen.width and Screen.height which only works for monitors.
-        [HarmonyPatch(typeof(WBOIT), nameof(WBOIT.VerifyRenderTargets))]
-        class WBOIT_VerifyRenderTargets_Patch
-        {
-            static bool Prefix(WBOIT __instance, RenderTexture ___wboitTexture1)
-            {
-                //use the VR eyetexture dimensions instead of Screen.width and height
-                if (___wboitTexture1 != null && (XRSettings.eyeTextureWidth != ___wboitTexture1.width || XRSettings.eyeTextureHeight != ___wboitTexture1.height))
-                {
-                    Traverse.Create(__instance).Method("DestroyRenderTargets").GetValue();
-                }
-                if (___wboitTexture1 == null)
-                {
-                    Traverse.Create(__instance).Method("CreateRenderTargets").GetValue();
-                }
-                return false;//don't run the original method
-            }
-
-        }
-
-
     }
 }
