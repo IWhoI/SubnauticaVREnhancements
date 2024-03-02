@@ -577,7 +577,7 @@ namespace VREnhancements
                 {
                     if (Cursor.lockState == CursorLockMode.Locked)
                     {
-                        __result = GraphicsUtil.GetScreenSize() * 0.5f; 
+                        __result = ((Vector2)GraphicsUtil.GetScreenSize()) * 0.5f; 
                     }
                     else if (!actualGazedBasedCursor)
                         //fix cursor snapping to middle of view when cursor goes off canvas due to hack in UpdateCursor
