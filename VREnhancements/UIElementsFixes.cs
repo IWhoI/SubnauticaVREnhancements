@@ -4,6 +4,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using UnityEngine.XR;
 using TMPro;
+using static VFXParticlesPool;
 
 namespace VREnhancements
 {
@@ -14,8 +15,6 @@ namespace VREnhancements
         static RectTransform CameraDroneHUD;
         static readonly float CameraHUDScaleFactor = 0.75f;
         static uGUI_SceneHUD sceneHUD;
-        static CanvasGroup resTrackerCG;
-        static CanvasGroup pingsCG;
         static bool seaglideEquipped = false;
         static Transform barsPanel;
         static Transform quickSlots;
@@ -51,12 +50,8 @@ namespace VREnhancements
                     VehicleHUDManager.vehicleCanvas.GetComponent<CanvasGroup>().alpha = alpha;
             }
             uGUI_SunbeamCountdown.main.transform.Find("Background").GetComponent<CanvasRenderer>().SetAlpha(0);//make sure the background remains hidden
-            //make the blips and pings more translucent than other hud elements
-            if (resTrackerCG)
-                resTrackerCG.alpha = Mathf.Clamp(alpha - 0.2f,0.1f,1);
-            if (pingsCG)
-                pingsCG.alpha = Mathf.Clamp(alpha - 0.2f, 0.1f, 1);
         }
+
         public static void UpdateHUDDistance(float distance)
         {
             if (sceneHUD)
@@ -85,7 +80,7 @@ namespace VREnhancements
             if (sceneHUD)
             {
                 Rect safeAreaRect;
-                //to make sure that the Rect is centered the width should be 1 - 2x
+                //to make sure that the Rect is centered the width should be 1 - 2x. Rect(x,y,width,height)
                 switch (separation)
                 {
                     case 0:
@@ -123,16 +118,16 @@ namespace VREnhancements
             sbRect.anchorMin = sbRect.anchorMax = new Vector2(0.5f, 0);
             uGUI_SunbeamCountdown.main.transform.localPosition = new Vector3(0, -450, 0);
 
-            UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
-            UpdateHUDDistance(AdditionalVROptions.HUD_Distance);
-            UpdateHUDScale(AdditionalVROptions.HUD_Scale);
+            UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha.Value);
+            UpdateHUDDistance(AdditionalVROptions.HUD_Distance.Value);
+            UpdateHUDScale(AdditionalVROptions.HUD_Scale.Value);
             //UpdateHUDSeparation done in uGUI_SceneLoading.End instead
 
             if (!quickSlots.GetComponent<UIFader>())
             {
                 UIFader qsFader = quickSlots.gameObject.AddComponent<UIFader>();
                 if (qsFader)
-                    qsFader.SetAutoFade(AdditionalVROptions.dynamicHUD);
+                    qsFader.SetAutoFade(AdditionalVROptions.dynamicHUD.Value);
             }
 
             if (!barsPanel.GetComponent<UIFader>())
@@ -140,7 +135,7 @@ namespace VREnhancements
                 UIFader barsFader = barsPanel.gameObject.AddComponent<UIFader>();
                 if (barsFader)
                 {
-                    barsFader.SetAutoFade(AdditionalVROptions.dynamicHUD);
+                    barsFader.SetAutoFade(AdditionalVROptions.dynamicHUD.Value);
                     barsFader.autoFadeDelay = 2;
                 }
             }
@@ -150,19 +145,11 @@ namespace VREnhancements
                 UIFader sbcFader = uGUI_SunbeamCountdown.main.gameObject.AddComponent<UIFader>();
                 if (sbcFader)
                 {
-                    sbcFader.SetAutoFade(AdditionalVROptions.dynamicHUD);
+                    sbcFader.SetAutoFade(AdditionalVROptions.dynamicHUD.Value);
                     sbcFader.autoFadeDelay = 5;
                 }
             }
         }
-        /*public static void SetSubtitleHeight(float percentage)
-        {
-            Subtitles.main.popup.oy = Subtitles.main.GetComponent<RectTransform>().rect.height * percentage / 100;
-        }
-        public static void SetSubtitleScale(float scale)
-        {
-            Subtitles.main.popup.GetComponent<RectTransform>().localScale = Vector3.one * scale;
-        }*/
 
         public static void UpdateHUDLookAt()
         {
@@ -183,46 +170,25 @@ namespace VREnhancements
         }
         ;
 
-        [HarmonyPatch(typeof(uGUI_ResourceTracker), nameof(uGUI_ResourceTracker.Start))]
-        class ResourceTracker_Start_Patch
+       [HarmonyPatch(typeof(uGUI_ResourceTracker), nameof(uGUI_ResourceTracker.UpdateBlips))]
+        class ResourceTracker_UpdateBlips_Patch
         {
-            static void Postfix(uGUI_ResourceTracker __instance)
+            static void Postfix(uGUI_ResourceTracker __instance, bool ___visible)
             {
-                if (!resTrackerCG)
-                {
-                    resTrackerCG = __instance.gameObject.AddComponent<CanvasGroup>();
-                    resTrackerCG.alpha = Mathf.Clamp(AdditionalVROptions.HUD_Alpha - 0.2f, 0.1f, 1);
-                }
-                    
+                if(___visible)
+                    __instance.canvasGroup.alpha = AdditionalVROptions.HUD_Alpha.Value;
             }
         }
-        [HarmonyPatch(typeof(uGUI_Pings), nameof(uGUI_Pings.OnEnable))]
-        class Pings_Enable_Patch
+
+        [HarmonyPatch(typeof(uGUI_Pings), nameof(uGUI_Pings.IsVisibleNow))]
+        class uGUI_Pings_IsVisibleNow_Patch
         {
-            static void Postfix(uGUI_Pings __instance)
+            static void Postfix(uGUI_Pings __instance, bool __result)
             {
-                if (!pingsCG)
-                {
-                    pingsCG = __instance.canvasGroup;
-                    pingsCG.alpha = Mathf.Clamp(AdditionalVROptions.HUD_Alpha - 0.2f, 0.1f, 1);
-                }
-                    
+                if (__result)
+                    __instance.canvasGroup.alpha = AdditionalVROptions.HUD_Alpha.Value;
             }
         }
-        /* TODO: This has to be updated if I still want the subtitle height to be customizable but the default subtitles in VR now seem fine.
-         * the update will involve uGUI_MessageQueue
-        [HarmonyPatch(typeof(Subtitles), nameof(Subtitles.Show))]
-        class SubtitlesPosition_Patch
-        {
-            static bool Prefix(Subtitles __instance)
-            {
-                __instance.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);//to keep subtitles centered when scaling.
-                __instance.popup.text.alignment = TextAnchor.MiddleLeft;
-                SetSubtitleScale(AdditionalVROptions.subtitleScale);
-                SetSubtitleHeight(AdditionalVROptions.subtitleHeight);
-                return true;
-            }
-        }*/
 
         //make sure the black overlays always hides the background for all HUD distances by scaling them up
         [HarmonyPatch(typeof(uGUI_PlayerDeath), nameof(uGUI_PlayerDeath.Start))]
@@ -307,7 +273,7 @@ namespace VREnhancements
                 ManagedCanvasUpdate.GetUICamera().clearFlags = CameraClearFlags.Depth;//fixes problem with right hand tools preventing some blips from showing
                 InitHUD();
                 UpdateHUDLookAt();
-                UpdateHUDSeparation(AdditionalVROptions.HUD_Separation);//wasn't working in HUD awake so put it here instead
+                UpdateHUDSeparation(AdditionalVROptions.HUD_Separation.Value);//wasn't working in HUD awake so put it here instead
                 VRUtil.Recenter();
             }
         }
@@ -337,11 +303,11 @@ namespace VREnhancements
                 UIFader qsFader = quickSlots.GetComponent<UIFader>();
                 Player player = Player.main;
                 Survival survival = player.GetComponent<Survival>();
-                fadeBarsPanel = AdditionalVROptions.dynamicHUD;
+                fadeBarsPanel = AdditionalVROptions.dynamicHUD.Value;
                 float fadeInStart = 10;
                 float fadeRange = 10;//max alpha at start+range degrees
 
-                if (AdditionalVROptions.dynamicHUD && !player.GetPDA().isInUse && survival && barsFader)
+                if (AdditionalVROptions.dynamicHUD.Value && !player.GetPDA().isInUse && survival && barsFader)
                 { 
                     if(Mathf.Abs(player.liveMixin.health-lastHealth)/player.liveMixin.maxHealth > 0.05f || player.liveMixin.GetHealthFraction() < 0.33f ||
                         player.GetOxygenAvailable() < (player.GetOxygenCapacity() / 3) || player.GetOxygenAvailable() > lastOxygen ||
@@ -365,7 +331,7 @@ namespace VREnhancements
                     uGUI_SunbeamCountdown.main.GetComponent<UIFader>().SetAutoFade(false);
                     //fades the hud in based on the view pitch. Forward is 360/0 degrees and straight down is 90 degrees.
                     if (MainCamera.camera.transform.localEulerAngles.x < 180)
-                        UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - fadeInStart) / fadeRange, 0, 1) * AdditionalVROptions.HUD_Alpha);
+                        UpdateHUDOpacity(Mathf.Clamp((MainCamera.camera.transform.localEulerAngles.x - fadeInStart) / fadeRange, 0, 1) * AdditionalVROptions.HUD_Alpha.Value);
                     else
                         UpdateHUDOpacity(0);
                 }//opacity is set back to HUDAlpha in PDA.Deactivated Postfix
@@ -377,8 +343,8 @@ namespace VREnhancements
         {
             static void Postfix()
             {
-                UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha);
-                uGUI_SunbeamCountdown.main?.transform.GetComponent<UIFader>()?.SetAutoFade(AdditionalVROptions.dynamicHUD);
+                UpdateHUDOpacity(AdditionalVROptions.HUD_Alpha.Value);
+                uGUI_SunbeamCountdown.main?.transform.GetComponent<UIFader>()?.SetAutoFade(AdditionalVROptions.dynamicHUD.Value);
             }
         }
 
@@ -391,12 +357,12 @@ namespace VREnhancements
                 UIFader qsFader = quickSlots.GetComponent<UIFader>();
                 if(qsFader)
                 {
-                    qsFader.Fade(AdditionalVROptions.HUD_Alpha, 0, 0, true);//make quickslot visible as soon as the slot changes. Using Fade to cancel any running fades.
+                    qsFader.Fade(AdditionalVROptions.HUD_Alpha.Value, 0, 0, true);//make quickslot visible as soon as the slot changes. Using Fade to cancel any running fades.
                     if (!seaglideEquipped)
                         qsFader.autoFadeDelay = 2;
                     else
                         qsFader.autoFadeDelay = 1;//fade with shorter delay if seaglide is active.
-                    qsFader.SetAutoFade((AdditionalVROptions.dynamicHUD || seaglideEquipped));
+                    qsFader.SetAutoFade((AdditionalVROptions.dynamicHUD.Value || seaglideEquipped));
                 }                
             }
         }
@@ -501,10 +467,10 @@ namespace VREnhancements
                         if(currentRayCastResult.gameObject)
                             __instance.SetTargetDistance(currentRayCastResult.distance - 0.05f);//-0.05 since it was sometimes rendering a little behind the target
                         else
-                            __instance.SetTargetDistance(AdditionalVROptions.HUD_Distance);
+                            __instance.SetTargetDistance(AdditionalVROptions.HUD_Distance.Value);
                     }
                     else if (Player.main.GetMode() == Player.Mode.LockedPiloting || CameraCyclopsHUD.gameObject.activeInHierarchy)
-                        __instance.SetTargetDistance(AdditionalVROptions.HUD_Distance);
+                        __instance.SetTargetDistance(AdditionalVROptions.HUD_Distance.Value);
                 }
                 return true;
             }
@@ -526,7 +492,7 @@ namespace VREnhancements
                 CameraDroneHUD = __instance.transform.Find("Content/CameraScannerRoom").GetComponent<RectTransform>();
                 if (CameraDroneHUD)
                 {
-                    CameraDroneHUD.localScale = new Vector3(CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, 1f);
+                    CameraDroneHUD.localScale = new Vector3(CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale.Value, CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale.Value, 1f);
                 }
             }
         }
@@ -538,7 +504,7 @@ namespace VREnhancements
             static void Postfix()
             {
                 if (sceneHUD)
-                    sceneHUD.GetComponent<CanvasGroup>().alpha = AdditionalVROptions.HUD_Alpha;
+                    sceneHUD.GetComponent<CanvasGroup>().alpha = AdditionalVROptions.HUD_Alpha.Value;
             }
         }
 
@@ -551,7 +517,7 @@ namespace VREnhancements
                 CameraCyclopsHUD = __instance.transform.Find("Content/CameraCyclops").GetComponent<RectTransform>();
                 if (CameraCyclopsHUD)
                 {
-                    CameraCyclopsHUD.localScale = new Vector3(CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale, 1f);
+                    CameraCyclopsHUD.localScale = new Vector3(CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale.Value, CameraHUDScaleFactor * AdditionalVROptions.HUD_Scale.Value, 1f);
                 }
 
             }
@@ -564,7 +530,7 @@ namespace VREnhancements
             static void Postfix()
             {
                 if (sceneHUD)
-                    sceneHUD.GetComponent<CanvasGroup>().alpha = AdditionalVROptions.HUD_Alpha;
+                    sceneHUD.GetComponent<CanvasGroup>().alpha = AdditionalVROptions.HUD_Alpha.Value;
             }
         }
         static bool actualGazedBasedCursor;
@@ -602,23 +568,21 @@ namespace VREnhancements
                 }
 
             }
-            static void Postfix(FPSInputModule __instance)
+            static void Postfix(FPSInputModule __instance, RaycastResult ___lastRaycastResult, Canvas ____cursorCanvas)
             {
                 VROptions.gazeBasedCursor = actualGazedBasedCursor;
                 //Fix the problem with the cursor rendering behind UI elements.
-                Canvas cursorCanvas = Traverse.Create(__instance).Field("_cursorCanvas").GetValue<Canvas>();
-                RaycastResult lastRaycastResult = Traverse.Create(__instance).Field("lastRaycastResult").GetValue<RaycastResult>();
-                if (cursorCanvas && lastRaycastResult.isValid)
+                if (____cursorCanvas && ___lastRaycastResult.isValid)
                 {
-                    cursorCanvas.sortingLayerID = lastRaycastResult.sortingLayer;//put the cursor on the same layer as whatever was hit by the cursor raycast.
+                    ____cursorCanvas.sortingLayerID = ___lastRaycastResult.sortingLayer;//put the cursor on the same layer as whatever was hit by the cursor raycast.
                 }
                 //change the VR cursor to look like the default hand reticle cursor for better accuracy when selecting smaller ui elements
                 //TODO: Find a way to not do this every frame.
-                if (cursorCanvas && HandReticle_Start_Patch.defaultReticle)
+                if (____cursorCanvas && HandReticle_Start_Patch.defaultReticle)
                 {
-                    cursorCanvas.GetComponentInChildren<Image>().overrideSprite = HandReticle_Start_Patch.defaultReticle;
-                    if (cursorCanvas.transform.localScale.x > 0.002f)
-                        cursorCanvas.transform.localScale = Vector3.one * 0.002f;
+                    ____cursorCanvas.GetComponentInChildren<Image>().overrideSprite = HandReticle_Start_Patch.defaultReticle;
+                    if (____cursorCanvas.transform.localScale.x > 0.002f)
+                        ____cursorCanvas.transform.localScale = Vector3.one * 0.002f;
                 }
 
             }
@@ -722,7 +686,7 @@ namespace VREnhancements
             static bool Prefix(uGUI_CanvasScaler __instance)
             {
                 if (__instance.gameObject.name == "ScreenCanvas")
-                    __instance.distance = AdditionalVROptions.HUD_Distance;
+                    __instance.distance = AdditionalVROptions.HUD_Distance.Value;
                 return true;
             }
         }

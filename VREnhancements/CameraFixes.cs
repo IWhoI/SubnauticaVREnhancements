@@ -78,9 +78,9 @@ namespace VREnhancements
         class SkipCinematic_Patch
         {
             //replace skipcinematic method to disable VR recenter after a cinematic. Only the player should initiate a recenter.
-            static bool Prefix(PlayerCinematicController __instance, Player player)
+            static bool Prefix(PlayerCinematicController __instance, Player player, ref Player ___player)
             {
-                Traverse.Create(__instance).Field("player").SetValue(player);//set private player field
+                ___player = player;
                 if (player)
                 {
                     Transform playerTransform = player.GetComponent<Transform>();
@@ -113,11 +113,12 @@ namespace VREnhancements
         class EnterCameraView_Patch
         {
             //removed the VRUtil.Recenter call from the original method
-            static bool Prefix(CyclopsExternalCams __instance, bool value)
+            static bool Prefix(CyclopsExternalCams __instance, bool value, ref bool ___active)
             {
-                if (value)
+                if (___active == value) return false;
+                ___active = value;
+                if (___active)
                 {
-                    Traverse.Create(__instance).Field("active").SetValue(true);//Using Harmony Reflection Helper to set private variable active.
                     InputHandlerStack.main.Push(__instance);
                     MainCameraControl.main.enabled = false;
                     Player.main.SetHeadVisible(true);

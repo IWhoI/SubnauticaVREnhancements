@@ -78,21 +78,21 @@ namespace VREnhancements
         [HarmonyPatch(typeof(ArmsController), nameof(ArmsController.Reconfigure))]
         class ArmsCon_Reconfigure_Patch
         {
-            static void Postfix(ArmsController __instance)
+            static void Postfix(ArmsController __instance, ref bool ___reconfigureWorldTarget)
             {
                 //This fixes a bug in the original game code where reconfigureWorldTarget was set to true in SetWorldIKTarget but never reset to false after running Reconfigure
                 //This caused the PDA ik target to work until piloting a vehicle which called SetWorldIKTarget and continuously called Reconfigure every frame after.
-                Traverse.Create(__instance).Field("reconfigureWorldTarget").SetValue(false);
+                ___reconfigureWorldTarget = false;
             }
         }
 
         [HarmonyPatch(typeof(ArmsController), nameof(ArmsController.Start))]
         class ArmsCon_Start_Patch
         {
-            static void Postfix(ArmsController __instance)
+            static void Postfix(ArmsController __instance, FullBodyBipedIK ___ik)
             {
                 //get the private ik field from ArmsController to use it in PDA Update method
-                myIK = Traverse.Create(__instance).Field("ik").GetValue<FullBodyBipedIK>();
+                myIK = ___ik;
             }
         }
     }

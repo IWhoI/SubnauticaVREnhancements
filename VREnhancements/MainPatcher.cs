@@ -3,12 +3,14 @@ using UnityEngine;
 using UnityEngine.XR;
 using BepInEx;
 using HarmonyLib;
+using BepInEx.Configuration;
 
 namespace VREnhancements
 {
     [BepInPlugin("com.whotnt.subnautica.vrenhancements.mod", "VREnhancements", "3.2.0")]
     public class MainPatcher:BaseUnityPlugin
     {
+       public static ConfigFile VRConfig = new ConfigFile(Paths.ConfigPath+"\\VREnhancements.cfg", true);
        private void Awake()
         {
             if (XRSettings.enabled)
