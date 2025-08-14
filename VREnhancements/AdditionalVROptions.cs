@@ -16,7 +16,7 @@ namespace VREnhancements
         //using BepInEx config system to save config. I'm not sure if there is a better way to do this but it works.
         public static ConfigEntry<bool> dynamicHUD;
         public static ConfigEntry<bool> enableVRAnimations;
-        public static ConfigEntry<bool> disableInputPitch;
+        //public static ConfigEntry<bool> disableInputPitch;
         public static ConfigEntry<float> walkingSpeed;
         public static ConfigEntry<float> PDA_Distance;
         public static ConfigEntry<float> HUD_Alpha;
@@ -24,15 +24,18 @@ namespace VREnhancements
         public static ConfigEntry<float> HUD_Scale;
         public static ConfigEntry<int> HUD_Separation;
 
-        //this will load/create the configuration values from the VREnhancements.cfg file in the BepInEx config folder.
+        //this will load/create the configuration values in the VREnhancements.cfg file in the BepInEx config folder.
         public static void LoadVRConfig()
         {
             enableVRAnimations = MainPatcher.VRConfig.Bind("General", "enableVRAnimations", true, "Wether or not animations for climbing ladders etc are enabled");
             GameOptions.enableVrAnimations = enableVRAnimations.Value;
             walkingSpeed = MainPatcher.VRConfig.Bind("General", "walkingSpeed", 1.0f, "Default VR walking speed is 60%(0.6) of the base game walk speed.");
             VROptions.groundMoveScale = walkingSpeed.Value;
+            /* disabled this since I didn't want to take the time to figure out how to fix the problem where the input pitch direction changes if
+             * recentering is done while your head is rotated left or right.
             disableInputPitch = MainPatcher.VRConfig.Bind("Input", "disableInputPitch", true, "Wether or not looking up and down is possible with an input device");
             VROptions.disableInputPitch = disableInputPitch.Value;
+            */
             dynamicHUD = MainPatcher.VRConfig.Bind("UI", "dynamicHUD", true, "Wether or not the dynamic HUD is enabled");            
             PDA_Distance = MainPatcher.VRConfig.Bind("UI", "PDA_Distance", 0.4f, "The distance that the PDA is held");
             HUD_Alpha = MainPatcher.VRConfig.Bind("UI", "HUD_Alpha", 1.0f, "Opacity of the HUD. 1 is fully opaque");
@@ -69,11 +72,12 @@ namespace VREnhancements
                 {
                    walkingSpeed.Value = VROptions.groundMoveScale = v / 100f;
                 }, SliderLabelMode.Float, "F0");
+                /* see note in LoadConfig for why this is disabled
                 __instance.AddToggleOption(generalTabIndex, "Disable Vertical Input", disableInputPitch.Value, delegate (bool v)
                 {
                     disableInputPitch.Value = VROptions.disableInputPitch = v;
                     VRUtil.Recenter();
-                });
+                });*/
                 __instance.AddHeading(generalTabIndex, "VR User Interface Options");
                 __instance.AddSliderOption(generalTabIndex, "PDA Distance", PDA_Distance.Value * 100f, 25, 40, (float)PDA_Distance.DefaultValue * 100, 1f, delegate (float v)
                 {

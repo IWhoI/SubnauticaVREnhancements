@@ -37,9 +37,12 @@
     <Reference Include="0Harmony20">
       <HintPath>C:\Games\Subnautica\Bepinex\core\0Harmony20.dll</HintPath>
     </Reference>
+    <Reference Include="Assembly-CSharp-firstpass_publicized">
+      <HintPath>C:\Games\Steam\steamapps\common\Subnautica\Subnautica_Data\Managed\publicized_assemblies\Assembly-CSharp-firstpass_publicized.dll</HintPath>
+    </Reference>
     <Reference Include="Assembly-CSharp_publicized, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>C:\Games\Subnautica\Subnautica_Data\Managed\publicized_assemblies\Assembly-CSharp_publicized.dll</HintPath>
+      <HintPath>C:\Games\Steam\steamapps\common\Subnautica\Subnautica_Data\Managed\publicized_assemblies\Assembly-CSharp_publicized.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx">
       <HintPath>C:\Games\Subnautica\BepInEx\core\BepInEx.dll</HintPath>
@@ -120,7 +123,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /y /d "$(TargetPath)" "C:\Games\Subnautica\BepInEx\plugins\VR Enhancements"</PostBuildEvent>
+    <PostBuildEvent>xcopy /y /d "$(TargetPath)" "C:\Games\Steam\steamapps\common\Subnautica\BepInEx\plugins\VR Enhancements"</PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>

@@ -620,8 +620,8 @@ namespace VREnhancements
                 screenCanvas.localPosition = overlayCanvas.localPosition = __instance.transform.localPosition;
                 screenCanvas.position = overlayCanvas.position = __instance.transform.position;
                 screenCanvas.rotation = overlayCanvas.rotation = __instance.transform.rotation;
-                //try to keep the main menu visible if the HMD is moved more than 0.5 after starting the game.
-                if (mainMenuUICam.localPosition.magnitude > 0.5f)
+                //try to keep the main menu visible if the HMD is moved more than 0.3m after starting the game.
+                if (mainMenuUICam.localPosition.magnitude > 0.3f)
                     VRUtil.Recenter();
                 //make sure the cursor remains visible after clicking outside the menu area
                 if (!FPSInputModule.current.lastGroup)

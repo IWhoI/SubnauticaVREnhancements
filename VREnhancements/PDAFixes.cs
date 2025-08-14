@@ -2,6 +2,7 @@
 using UnityEngine;
 using RootMotion.FinalIK;
 using System;
+using static VFXParticlesPool;
 
 namespace VREnhancements
 {
@@ -22,7 +23,19 @@ namespace VREnhancements
         {
             pdaDistance = distance;
         }
-
+        /*
+         * Do this to make sure the PDA opens in front the player if allowing pitch control with input.
+        [HarmonyPatch(typeof(PDA), nameof(PDA.Open))]
+        class Prefix_PDA_Open_Patch
+        {
+            static bool Prefix(PDA __instance)
+            {
+                MainCameraControl.main.cameraOffsetTransform.localRotation = Quaternion.identity;
+                MainCameraControl.main.cameraUPTransform.localRotation = Quaternion.identity;
+                MainCameraControl.main.transform.localRotation = Quaternion.Euler(0, MainCameraControl.main.transform.localRotation.eulerAngles.y, MainCameraControl.main.transform.localRotation.eulerAngles.z);
+                return true;
+            }
+        }*/
 
         [HarmonyPatch(typeof(PDA), nameof(PDA.Open))]
         class PDA_Open_Patch
@@ -41,12 +54,38 @@ namespace VREnhancements
                         leftHandTarget = new GameObject();
                     leftHandTarget.transform.parent = Player.main.camRoot.transform;
                     //TODO: This is probably needlessly complicated and could be done in a simpler way
+                    Transform armsTransform = Player.main.armsController.transform;
+                    Transform leftHTParentTf = leftHandTarget.transform.parent.transform;
                     if (Player.main.motorMode != Player.MotorMode.Vehicle)
-                        leftHandTarget.transform.localPosition = leftHandTarget.transform.parent.transform.InverseTransformPoint(Player.main.playerController.forwardReference.position + Player.main.armsController.transform.right * pdaXOffset + Vector3.up * -0.15f + new Vector3(Player.main.armsController.transform.forward.x, 0f, Player.main.armsController.transform.forward.z).normalized * pdaDistance);
+                        leftHandTarget.transform.localPosition = leftHTParentTf.InverseTransformPoint(Player.main.playerController.forwardReference.position + armsTransform.right * pdaXOffset + Vector3.up * -0.15f + new Vector3(armsTransform.forward.x, 0f, armsTransform.forward.z).normalized * pdaDistance);
                     else
-                        leftHandTarget.transform.localPosition = leftHandTarget.transform.parent.transform.InverseTransformPoint(leftHandTarget.transform.parent.transform.position + leftHandTarget.transform.parent.transform.right * pdaXOffset + leftHandTarget.transform.parent.transform.forward * pdaDistance + leftHandTarget.transform.parent.transform.up * -0.15f);
-                    leftHandTarget.transform.rotation = Player.main.armsController.transform.rotation * Quaternion.Euler(pdaXRot, pdaYRot, pdaZRot);
+                        leftHandTarget.transform.localPosition = leftHTParentTf.InverseTransformPoint(leftHTParentTf.position + leftHTParentTf.right * pdaXOffset + leftHTParentTf.forward * pdaDistance + leftHTParentTf.up * -0.15f);
+                    leftHandTarget.transform.rotation = armsTransform.rotation * Quaternion.Euler(pdaXRot, pdaYRot, pdaZRot);
                 }
+            }
+        }
+
+        //this stops the model from snapping to 0 y rotation and turning back to head rotation when closing the PDA
+        [HarmonyPatch(typeof(MainCameraControl), nameof(MainCameraControl.ResetLockedVRViewModelAngle))]
+        class MainCameraControl_ResetVRViewModelAngle_Patch
+        {
+            static bool Prefix()
+            {
+                //do the reset in PDA.Deactivated which runs after the closing animation to prevent the player model rotation from snapping to y=0 while closing.
+                if(Player.main.GetPDA().isInUse)
+                    return false;
+                else
+                    return true;
+            }
+        }
+
+        [HarmonyPatch(typeof(PDA), nameof(PDA.Deactivated))]
+        class PDA_Deactivated_Patch
+        {
+            static void Postfix()
+            {
+                //this was being done before the closing animation in PDA.Close and caused the player model rotation to snap to y=0 while closing
+                MainCameraControl.main.ResetLockedVRViewModelAngle();
             }
         }
 
