@@ -112,28 +112,24 @@ namespace VREnhancements
         [HarmonyPatch(typeof(CyclopsExternalCams), nameof(CyclopsExternalCams.SetActive))]
         class EnterCameraView_Patch
         {
-            //removed the VRUtil.Recenter call from the original method
+            //removed the VRUtil.Recenter call from the original method when activating the camera view
             static bool Prefix(CyclopsExternalCams __instance, bool value, ref bool ___active)
             {
                 if (___active == value) return false;
-                ___active = value;
-                if (___active)
+                if (value)
                 {
+                    ___active = true;//only set active inside here since setting it outside will cause issues when running the original method after returning true when value is false.
                     InputHandlerStack.main.Push(__instance);
                     MainCameraControl.main.enabled = false;
                     Player.main.SetHeadVisible(true);
                     __instance.cameraLight.enabled = true;
-                    Traverse.Create(__instance).Method("ChangeCamera", 0).GetValue();//Call the private method ChangeCamera(0) using Harmony Reflection Helper
+                    Traverse.Create(__instance).Method("ChangeCamera", 0).GetValue();
                     if (__instance.lightingPanel)
                     {
                         __instance.lightingPanel.TempTurnOffFloodlights();
                     }
-                    return false;
-
                 }
-                else
-                    return true;
-                
+                return true;
             }
         }
 
